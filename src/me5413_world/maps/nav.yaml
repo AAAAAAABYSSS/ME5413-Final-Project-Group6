@@ -1,0 +1,9 @@
+image: /home/arc/zewen/ME5413_Final_Project/src/me5413_world/maps/nav.pgm
+resolution: 0.050000
+# origin: [0, 0,0.5]
+origin: [-9.4, -32.250000,0]
+# origin: [-11.450001, -32.250000, 0.000000]
+negate: 0
+occupied_thresh: 0.65
+free_thresh: 0.196
+

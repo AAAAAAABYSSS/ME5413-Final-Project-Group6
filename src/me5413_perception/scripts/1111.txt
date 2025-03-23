@@ -1,0 +1,12 @@
+box在地底
+baselink
+需要再来一部baselink转velodym
+
+def bbox callback(self, msg):
+"""存储 bbox 数据，不立即处理"""self.last bbox msg = msg
+
+if.dist <=1.8:
+self.status pub.publish(Bool(data=True))rospy.loginfo("Goal reached: True")else:
+else:
+self.status pub.publish(Bool(data=False))rospy.loginfo("Goal not reached:False")
+rospy.logwarn throttle(5,"Waiting for odometry...")
