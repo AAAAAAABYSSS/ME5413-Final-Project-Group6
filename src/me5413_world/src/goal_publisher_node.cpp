@@ -68,6 +68,54 @@ void GoalPublisherNode::robotOdomCallback(const nav_msgs::Odometry::ConstPtr& od
   this->robot_frame_ = odom->child_frame_id;
   this->pose_world_robot_ = odom->pose.pose;
 
+  // // Step 1: world → base_link（来自 Gazebo ground truth）
+  // tf2::Transform T_world_base = convertPoseToTransform(this->pose_world_robot_);
+
+  // // Step 2: 创建一个绕 Z 轴逆时针旋转 90° 的变换
+  // tf2::Transform T_world_rotation;
+  // T_world_rotation.setOrigin(tf2::Vector3(0.0, 0.0, 0.0));
+  // tf2::Quaternion q_rotation;
+  // q_rotation.setRPY(0, 0, - M_PI / 2);  // 逆时针旋转 90°
+  // q_rotation.normalize();
+  // T_world_rotation.setRotation(q_rotation);
+
+  // // Step 3: 旋转修正后的 world → base_link
+  // tf2::Transform T_world_base_rotated = T_world_rotation * T_world_base;
+
+  // // Step 4: 获取 odom → base_link（来自 EKF）
+  // geometry_msgs::TransformStamped tf_odom_base_msg;
+  // tf2::Transform T_odom_base;
+  // try
+  // {
+  //   tf_odom_base_msg = this->tf2_buffer_.lookupTransform("odom", this->robot_frame_, ros::Time(0));
+  //   tf2::fromMsg(tf_odom_base_msg.transform, T_odom_base);
+  // }
+  // catch (tf2::TransformException &ex)
+  // {
+  //   ROS_WARN("Failed to lookup odom → base_link: %s", ex.what());
+  //   return;
+  // }
+
+  // // Step 5: base_link → odom
+  // tf2::Transform T_base_odom = T_odom_base.inverse();
+
+  // // Step 6: 推出 world → odom
+  // tf2::Transform T_world_odom = T_world_base_rotated * T_base_odom;
+
+  // // Step 7: 发布 world → odom
+  // geometry_msgs::TransformStamped transformStamped;
+  // transformStamped.header.stamp = ros::Time::now();
+  // transformStamped.header.frame_id = "world";
+  // transformStamped.child_frame_id = "odom";
+  // transformStamped.transform.translation.x = T_world_odom.getOrigin().getX();
+  // transformStamped.transform.translation.y = T_world_odom.getOrigin().getY();
+  // transformStamped.transform.translation.z = T_world_odom.getOrigin().getZ();
+  // transformStamped.transform.rotation.x = T_world_odom.getRotation().getX();
+  // transformStamped.transform.rotation.y = T_world_odom.getRotation().getY();
+  // transformStamped.transform.rotation.z = T_world_odom.getRotation().getZ();
+  // transformStamped.transform.rotation.w = T_world_odom.getRotation().getW();
+
+  // this->tf2_bcaster_.sendTransform(transformStamped);
   const tf2::Transform T_world_robot = convertPoseToTransform(this->pose_world_robot_);
   const tf2::Transform T_robot_world = T_world_robot.inverse();
 
@@ -75,6 +123,7 @@ void GoalPublisherNode::robotOdomCallback(const nav_msgs::Odometry::ConstPtr& od
   transformStamped.header.stamp = ros::Time::now();
   transformStamped.header.frame_id = this->robot_frame_;
   transformStamped.child_frame_id = this->world_frame_;
+  
   transformStamped.transform.translation.x = T_robot_world.getOrigin().getX();
   transformStamped.transform.translation.y = T_robot_world.getOrigin().getY();
   transformStamped.transform.translation.z = 0.0;
