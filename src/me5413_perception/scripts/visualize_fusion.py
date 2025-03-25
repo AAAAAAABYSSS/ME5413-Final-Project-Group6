@@ -62,7 +62,7 @@ class YOLORVizMarker:
             marker.type = Marker.SPHERE
             marker.action = Marker.ADD
             marker.pose.position.x = x
-            print("阿巴拜aaaaaaaa:", target)
+            print("target:", target)
             marker.pose.position.y = y
             marker.pose.position.z = z
             marker.scale.x = 0.1
