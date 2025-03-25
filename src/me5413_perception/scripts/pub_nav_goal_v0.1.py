@@ -16,6 +16,7 @@ class FurthestBoxNavigator:
         self.overlap_threshold = rospy.get_param("~overlap_threshold", 0.6)
         self.bridge_width = rospy.get_param("~bridge_width", 4.0)
         self.box_size = rospy.get_param("~box_big_size", 0.8)
+        self.yaw_bin_size = rospy.get_param("~yaw_bin_size", 30)
         self.box_half = self.box_size / 2.0
 
         self.tf_listener = tf.TransformListener()
@@ -26,13 +27,14 @@ class FurthestBoxNavigator:
         self.yolo_targets = []
         self.tracked_boxes = []
         self.unfinished_directions = []
+        self.finished_directions = set()
 
         rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
         rospy.Subscriber("/bbox_markers", MarkerArray, self.bbox_callback)
         rospy.Subscriber("/move_base/status", Bool, self.status_callback)
         rospy.Subscriber("/perception/yolo_targets_3d", String, self.yolo_callback)
-        rospy.Subscriber("/one_rot/finish_status", String, self.finish_status_callback)
-        rospy.Subscriber("/one_rot/end_status", Bool, self.end_status_callback)
+        rospy.Subscriber("/one_rot/finish_status", Bool, self.rot_status_callback)
+        rospy.Subscriber("/one_rot/end_status", Bool, self.rot_end_callback)
 
         self.goal_pub = rospy.Publisher("/move_base_simple/goal", PoseStamped, queue_size=1)
         self.marker_pub = rospy.Publisher("/nav_goal_marker", Marker, queue_size=1)
@@ -133,15 +135,7 @@ class FurthestBoxNavigator:
             if not box["matched"]:
                 marker_array.markers.append(box["marker"])
         self.last_bbox_msg = marker_array
-
-    def finish_status_callback(self, msg):
-        try:
-            finished_angles = json.loads(msg.data)  # e.g., {"0": true, "45": false, ...}
-            unfinished = [angle for angle, done in finished_angles.items() if not done]
-            self.unfinished_pub.publish(json.dumps({"unfinished_angles": unfinished}))
-        except Exception as e:
-            rospy.logwarn(f"[FinishStatus] Failed to process: {e}")
-
+     
     def end_status_callback(self, msg):
         if msg.data and self.last_bbox_msg:
             self.find_and_publish_new_goal(self.last_bbox_msg)
@@ -174,6 +168,36 @@ class FurthestBoxNavigator:
             self.last_goal_position = furthest_box_position
             self.publish_goal(furthest_box_position)
             self.publish_arrow_marker(furthest_box_position)
+    
+    def rot_end_callback(self, msg):
+        if msg.data:  
+            rospy.loginfo("[Rotation] One rotation finished. Computing new goal...")
+            if self.last_bbox_msg:
+                self.find_and_publish_new_goal(self.last_bbox_msg)
+
+
+    def rot_status_callback(self, msg):
+        if not msg.data:
+            return  
+
+        yaw = np.arctan2(self.current_pose[1, 0], self.current_pose[0, 0]) * 180.0 / np.pi
+        yaw = (yaw + 360) % 360  
+        yaw_bin = int(yaw // self.yaw_bin_size) * self.yaw_bin_size
+
+        self.finished_directions.add(yaw_bin)
+        rospy.loginfo(f"[Rotation] Finished direction: {yaw_bin}°")
+
+        unfinished_bins = set()
+        for box in self.tracked_boxes:
+            if not box["matched"]:
+                box_vec = np.array(box["center"]) - self.current_pose[:3, 3]
+                box_yaw = np.arctan2(box_vec[1], box_vec[0]) * 180.0 / np.pi
+                box_yaw = (box_yaw + 360) % 360
+                box_bin = int(box_yaw // self.yaw_bin_size) * self.yaw_bin_size
+                if box_bin not in self.finished_directions:
+                    unfinished_bins.add(box_bin)
+
+        self.unfinished_pub.publish(json.dumps(sorted(list(unfinished_bins))))
 
     def publish_goal(self, position):
         goal_msg = PoseStamped()
