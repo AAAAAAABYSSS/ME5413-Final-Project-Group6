@@ -9,9 +9,9 @@ from std_msgs.msg import String
 class YOLORVizMarker:
     def __init__(self):
         rospy.init_node("yolo_rviz_marker", anonymous=True)
-        self.marker_pub = rospy.Publisher("/yolo_markers", MarkerArray, queue_size=10)
+        self.marker_pub = rospy.Publisher("/perception/yolo_markers", MarkerArray, queue_size=10)
         self.yolo_targets_3d = []
-        rospy.Subscriber("/yolo_targets_3d", String, self.yolo_callback)
+        rospy.Subscriber("/perception/yolo_targets_3d", String, self.yolo_callback)
         self.rate = rospy.Rate(10)
 
     def yolo_callback(self, msg):
@@ -62,6 +62,7 @@ class YOLORVizMarker:
             marker.type = Marker.SPHERE
             marker.action = Marker.ADD
             marker.pose.position.x = x
+            print("阿巴拜aaaaaaaa:", target)
             marker.pose.position.y = y
             marker.pose.position.z = z
             marker.scale.x = 0.1

@@ -1,16 +1,27 @@
-import rospy
-import json
-import numpy as np
+#!/usr/bin/env python
+# coding: utf-8
+
 import tf
-from sensor_msgs.msg import PointCloud2, CameraInfo
-from std_msgs.msg import String
-import sensor_msgs.point_cloud2 as pc2
-from tf import transformations
+import json
 import math
+import rospy
+import numpy as np
+from tf import transformations
+from std_msgs.msg import String
+from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Point
+import sensor_msgs.point_cloud2 as pc2
+from sensor_msgs.msg import PointCloud2, CameraInfo
+from scipy.spatial.transform import Rotation as R
 
 class FusionNode:
     def __init__(self):
         rospy.init_node("fusion_node", anonymous=True)
+    
+        self.N = rospy.get_param("~num_closest_points", 10)  
+        self.merge_distance = rospy.get_param("~merge_distance", 0.4)
+
+        rospy.loginfo(f"[FusionNode] Using {self.N} closest points based on ray direction")
 
         self.latest_pointcloud = None
         self.camera_intrinsics = None
@@ -19,14 +30,18 @@ class FusionNode:
 
         rospy.Subscriber("/front/camera_info", CameraInfo, self.camera_info_callback)
         rospy.Subscriber("/mid/points", PointCloud2, self.pointcloud_callback)
-        rospy.Subscriber("/yolo_targets", String, self.yolo_callback)
+        rospy.Subscriber("/perception/yolo_targets", String, self.yolo_callback)
+        rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
 
-        self.target_3d_pub = rospy.Publisher("/yolo_targets_3d", String, queue_size=10)
-        self.rate = rospy.Rate(30)
+        self.target_3d_pub = rospy.Publisher("/perception/yolo_targets_3d", String, queue_size=10)
+
+        self.unmatched_points_cache = []
+        self.merged_points_cache = []
+
+        self.rate = rospy.Rate(10)
 
     def camera_info_callback(self, msg):
         self.camera_intrinsics = np.array(msg.K).reshape(3, 3)
-        rospy.loginfo("Camera intrinsic matrix loaded:\n%s" % self.camera_intrinsics)
 
     def pointcloud_callback(self, msg):
         try:
@@ -39,100 +54,136 @@ class FusionNode:
             self.yolo_targets = json.loads(msg.data)
         except Exception as e:
             rospy.logerr(f"Error parsing YOLO target JSON: {e}")
+            
+    def odom_callback(self, msg):
+        position = msg.pose.pose.position
+        orientation = msg.pose.pose.orientation
+
+        self.T_base_to_map = np.eye(4)
+        self.P_base_to_map = [position.x, position.y, position.z]
+        self.R_base_to_map = R.from_quat([orientation.x, orientation.y, orientation.z, orientation.w]).as_matrix()
+        self.T_base_to_map[:3, 3] = self.P_base_to_map
+        self.T_base_to_map[:3, :3] = self.R_base_to_map
+        self.T_map_to_base = np.linalg.inv(self.T_base_to_map)
 
     def transform_point(self, point, transform):
-        tf_point = np.dot(transform, np.array([point[0], point[1], point[2], 1.0]))
-        return tf_point[:3]
+        point_homog = np.dot(transform, np.array([point[0], point[1], point[2], 1.0]))
+        return point_homog[:3]
 
-    def merge_close_boxes(self, matched_boxes, box_width=0.8):
-        merged_boxes = []
-        used_indices = set()
-        box_list = list(matched_boxes.values())
+    def transform_points(self, points, transform):
+        transformed = []
+        for pt in points:
+            pt_homog = np.array([pt[0], pt[1], pt[2], 1.0])
+            pt_trans = transform.dot(pt_homog)
+            transformed.append(pt_trans[:3])
+        return transformed
 
-        for i, box1 in enumerate(box_list):
-            if i in used_indices:
+    def merge_nearby_labels(self, output, distance_threshold):
+        merged = []
+        used = [False] * len(output)
+
+        for i in range(len(output)):
+            if used[i]:
                 continue
+            curr = output[i]
+            curr_pts = curr["points"]
+            matched_flag = False
 
-            x1, y1, z1, label1, conf1 = box1["X"], box1["Y"], box1["Z"], box1["label"], box1["conf"]
-            best_box = box1
-
-            for j, box2 in enumerate(box_list):
-                if i == j or j in used_indices:
+            for j in range(i + 1, len(output)):
+                if used[j]:
+                    continue
+                other = output[j]
+                if curr["label"] != other["label"]:
                     continue
 
-                x2, y2, z2, label2, conf2 = box2["X"], box2["Y"], box2["Z"], box2["label"], box2["conf"]
-                
-                if abs(x1 - x2) < box_width and abs(z1 - z2) < 1.0:
-                    if conf2 > conf1:
-                        best_box = box2
-                        conf1 = conf2
-                    used_indices.add(j)
+                center_i = np.mean([[p["x"], p["y"], p["z"]] for p in curr_pts], axis=0)
+                center_j = np.mean([[p["x"], p["y"], p["z"]] for p in other["points"]], axis=0)
+                dist = np.linalg.norm(center_i - center_j)
 
-            merged_boxes.append(best_box)
+                if dist < distance_threshold:
+                    curr_pts += other["points"]
+                    used[j] = True
+                    matched_flag = True
 
-        rospy.loginfo(f"Merged box count: {len(merged_boxes)} (Original: {len(matched_boxes)})")
-        return merged_boxes
+            merged.append({
+                "label": curr["label"],
+                "conf": curr["conf"],
+                "u_center": curr["u_center"],
+                "v_center": curr["v_center"],
+                "matched": matched_flag,
+                "points": curr_pts
+            })
+
+        return merged
 
     def process_data(self):
         while not rospy.is_shutdown():
-            if self.latest_pointcloud is not None and self.camera_intrinsics is not None and self.yolo_targets:
+            if self.latest_pointcloud and self.camera_intrinsics is not None and self.yolo_targets:
                 try:
-                    (trans1, rot1) = self.tf_listener.lookupTransform("/base_link", "/velodyne", rospy.Time(0))
-                    (trans2, rot2) = self.tf_listener.lookupTransform("/front_camera_optical", "/base_link", rospy.Time(0))
-                    transform1 = np.dot(transformations.translation_matrix(trans1), transformations.quaternion_matrix(rot1))
-                    transform2 = np.dot(transformations.translation_matrix(trans2), transformations.quaternion_matrix(rot2))
-                    transform_matrix = np.dot(transform2, transform1)
+                    (trans, rot) = self.tf_listener.lookupTransform("/front_camera_optical", "/velodyne", rospy.Time(0))
+                    tf_velo_to_cam = np.dot(transformations.translation_matrix(trans), transformations.quaternion_matrix(rot))
 
-                    fx, fy, cx, cy = self.camera_intrinsics[0, 0], self.camera_intrinsics[1, 1], self.camera_intrinsics[0, 2], self.camera_intrinsics[1, 2]
+                    (trans_base, rot_base) = self.tf_listener.lookupTransform("/base_link", "/velodyne", rospy.Time(0))
+                    tf_velo_to_base = np.dot(transformations.translation_matrix(trans_base), transformations.quaternion_matrix(rot_base))
 
-                    matched_boxes = {}
+                    fx = self.camera_intrinsics[0, 0]
+                    fy = self.camera_intrinsics[1, 1]
+                    cx = self.camera_intrinsics[0, 2]
+                    cy = self.camera_intrinsics[1, 2]
 
-                    for point in self.latest_pointcloud:
-                        transformed_point = self.transform_point(point, transform_matrix)
-                        X, Y, Z = transformed_point
-                        X0, Y0, Z0 = point
+                    projected_points = []
+                    for pt in self.latest_pointcloud:
+                        pt_cam = self.transform_point(pt, tf_velo_to_cam)
+                        X, Y, Z = pt_cam
 
-                        if Z > 0:
-                            u = int((fx * X / Z) + cx)
-                            v = int((fy * Y / Z) + cy)
+                        if Z <= 0:
+                            continue
+                        u = int((fx * X / Z) + cx)
+                        v = int((fy * Y / Z) + cy)
+                        projected_points.append({
+                            "u": u,
+                            "v": v,
+                            "point": pt
+                        })
 
-                            for target in self.yolo_targets:
-                                u_target, v_target, label, conf = target["u_center"], target["v_center"], target["label"], target["conf"]
+                    output = []
+                    for target in self.yolo_targets:
+                        u_center = int(target["u_center"])
+                        v_center = int(target["v_center"])
+                        label = target["label"]
+                        conf = target["conf"]
 
-                                if abs(u - u_target) < 5 and abs(v - v_target) < 5:
-                                    key = (label, conf)
-                                    if key not in matched_boxes:
-                                        matched_boxes[key] = {
-                                            "u_center": u_target,
-                                            "v_center": v_target,
-                                            "label": label,
-                                            "conf": conf,
-                                            "X": X0,
-                                            "Y": Y0,
-                                            "Z": Z0
-                                        }
-                                    else:
-                                        existing_X, existing_Y, existing_Z = matched_boxes[key]["X"], matched_boxes[key]["Y"], matched_boxes[key]["Z"]
-                                        distance = math.sqrt((X - existing_X)**2 + (Y - existing_Y)**2 + (Z - existing_Z)**2)
+                        dists = []
+                        for proj in projected_points:
+                            du = proj["u"] - u_center
+                            dv = proj["v"] - v_center
+                            dist = math.sqrt(du**2 + dv**2)
+                            dists.append((dist, proj["point"]))
 
-                                        if distance < 1.1:
-                                            if conf > matched_boxes[key]["conf"]:
-                                                matched_boxes[key].update({"X": X0, "Y": Y0, "Z": Z0, "conf": conf, "label": label})
-                                        else:
-                                            matched_boxes[(label, conf, len(matched_boxes))] = {"u_center": u_target, "v_center": v_target, "label": label, "conf": conf, "X": X0, "Y": Y0, "Z": Z0}
-
-                    if matched_boxes:
-                        merged_boxes = self.merge_close_boxes(matched_boxes, box_width=0.8)
-                        self.target_3d_pub.publish(json.dumps(merged_boxes))
+                        dists.sort(key=lambda x: x[0])
+                        nearest_points = [pt for _, pt in dists[:self.N]]
+                        nearby_points_base = self.transform_points(nearest_points, tf_velo_to_base)
+                        nearby_points_map = self.transform_points(nearby_points_base, self.T_base_to_map) 
+            
+                        output.append({
+                            "label": label,
+                            "conf": conf,
+                            "u_center": u_center,
+                            "v_center": v_center,
+                            "points": [{"x": p[0], "y": p[1], "z": p[2]} for p in nearby_points_map]
+                        })
+                    merged_output = self.merge_nearby_labels(output, self.merge_distance)
+                    self.target_3d_pub.publish(json.dumps(merged_output))
+                   
 
                 except Exception as e:
-                    rospy.logwarn("Failed to transform coordinates: %s" % str(e))
+                    rospy.logwarn(f"[FusionNode] Failed to process: {e}")
 
             self.rate.sleep()
 
 if __name__ == "__main__":
     try:
-        fusion_node = FusionNode()
-        fusion_node.process_data()
+        node = FusionNode()
+        node.process_data()
     except rospy.ROSInterruptException:
         pass

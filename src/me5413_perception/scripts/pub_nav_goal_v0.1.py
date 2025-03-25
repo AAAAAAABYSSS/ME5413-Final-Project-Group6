@@ -1,195 +1,278 @@
 #!/usr/bin/env python
 import rospy
-import sensor_msgs.point_cloud2 as pc2
-from sensor_msgs.msg import PointCloud2, PointField
-from nav_msgs.msg import Odometry
 import numpy as np
-import open3d as o3d  # Used for point cloud processing
-import std_msgs.msg
-import os
-import json
+from geometry_msgs.msg import PoseStamped
+from visualization_msgs.msg import MarkerArray, Marker
+from nav_msgs.msg import Odometry
+from std_msgs.msg import Bool
 from scipy.spatial.transform import Rotation as R
-from visualization_msgs.msg import Marker, MarkerArray
+from std_msgs.msg import String
+import json
+import os
+import tf
 
-
-class PointCloudProcessor:
+class FurthestBoxNavigator:
     def __init__(self):
-        rospy.init_node("box_detector", anonymous=True)
+        rospy.init_node("furthest_box_navigator", anonymous=True)
 
-        # Initialize storage variables
-        self.current_pose = None
-        self.all_detections = []
+        self.overlap_threshold = rospy.get_param("~overlap_threshold", 0.6)
+        self.bridge_width = rospy.get_param("~bridge_width", 4.0)
+        self.box_size = rospy.get_param("~box_big_size", 0.8)
+        self.box_half = self.box_size / 2.0
 
-        # Set save path
-        self.save_dir = "pcd_map/"
-        if not os.path.exists(self.save_dir):
-            os.makedirs(self.save_dir)
+        self.tf_listener = tf.TransformListener()
+        self.current_pose = np.eye(4)  # 4x4 transformation matrix from map to base_link
+        self.reach_goal = True  # Assume robot starts at the target
+        self.last_goal_position = None
+        self.last_bbox_msg = None
+        self.yolo_targets = []
+        self.tracked_boxes = []
 
-        # JSON file path (overwritten each time)
-        self.json_file = "merged_bboxes.json"
-
-        # Whether to save foreground point cloud
-        self.foreground_save = False
-
-        # Subscribe to topics
-        rospy.Subscriber("/mid/points", PointCloud2, self.pointcloud_callback)
         rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
+        rospy.Subscriber("/bbox_markers", MarkerArray, self.bbox_callback)
+        rospy.Subscriber("/move_base/status", Bool, self.status_callback)
+        rospy.Subscriber("/perception/yolo_targets_3d", String, self.yolo_callback)
 
-        self.marker_pub = rospy.Publisher("/bbox_markers", MarkerArray, queue_size=1)
 
-        rospy.loginfo("Subscribed to /mid/points and /gazebo/ground_truth/state topics")
+        self.goal_pub = rospy.Publisher("/move_base_simple/goal", PoseStamped, queue_size=1)
+        self.marker_pub = rospy.Publisher("/nav_goal_marker", Marker, queue_size=1)
+        # self.bbox_marker_pub = rospy.Publisher("/bbox_markers_tracked", MarkerArray, queue_size=1)
+
+
+        rospy.loginfo("FurthestBoxNavigator Initialization completed")
+        rospy.spin()
 
     def odom_callback(self, msg):
-        """ Process odometry message and update robot pose """
         position = msg.pose.pose.position
         orientation = msg.pose.pose.orientation
 
-        # Compute 4x4 homogeneous transformation matrix (map -> base_link)
         translation = np.array([position.x, position.y, position.z])
-        rotation = R.from_quat(
-            [orientation.x, orientation.y, orientation.z, orientation.w]
-        ).as_matrix()
+        rotation = R.from_quat([
+            orientation.x, orientation.y, orientation.z, orientation.w
+        ]).as_matrix()
 
         self.current_pose = np.eye(4)
         self.current_pose[:3, :3] = rotation
         self.current_pose[:3, 3] = translation
 
-    def pointcloud_callback(self, msg):
-        """ Process point cloud data """
-        if self.current_pose is None:
-            rospy.logwarn("Waiting for pose information...")
-            return
+    def yolo_callback(self, msg):
+        try:
+            self.yolo_targets = json.loads(msg.data)
+            rospy.loginfo(f"[YoloCallback] get {len(self.yolo_targets)} target")
+        except Exception as e:
+            rospy.logwarn(f"[YoloCallback] Failed: {e}")
+            self.yolo_targets = []
 
-        # Read point cloud data
-        point_list = [list(point[:3]) for point in pc2.read_points(msg, skip_nans=True)]
-        point_cloud = np.array(point_list, dtype=np.float32)
-        rospy.loginfo("Received point cloud with %d points" % len(point_cloud))
+    def point_in_box(self, point, box_center):
+        return all(abs(point[i] - box_center[i]) <= self.box_half for i in range(3))
 
-        # Coordinate transformation (base_link -> map)
-        num_points = point_cloud.shape[0]
-        ones = np.ones((num_points, 1), dtype=np.float32)
-        homogeneous_points = np.hstack((point_cloud, ones))
-        transformed_points = (self.current_pose @ homogeneous_points.T).T[:, :3]
+    def bbox_callback(self, msg):
+        if not self.tracked_boxes:
+            for marker in msg.markers:
+                if marker.ns != "box":
+                    continue
 
-        # Preprocessing: Remove out-of-range points
-        transformed_points = transformed_points[
-            (transformed_points[:, 0] <= 25) & (transformed_points[:, 1] >= -5)
-        ]
+                if any(box["id"] == marker.id for box in self.tracked_boxes):
+                    continue
 
-        # Check for abnormal point clouds and avoid saving
-        if (
-            np.min(transformed_points[:, 0]) < 1.5
-            or np.max(transformed_points[:, 0]) > 23.5
-            or np.min(transformed_points[:, 1]) < -1.5
-        ):
-            rospy.logwarn("Detected abnormal point cloud frame due to rotation, skipping save")
-            return
+                center = [
+                    marker.pose.position.x,
+                    marker.pose.position.y,
+                    marker.pose.position.z
+                ]
+                self.tracked_boxes.append({
+                    "id": marker.id,
+                    "center": center,
+                    "matched": False,
+                    "labels": [],
+                    "label": [],
+                    "marker": marker
+                })
+        else:
+            for box in self.tracked_boxes:
 
-        # Segment foreground point cloud
-        foreground_points = transformed_points[
-            (transformed_points[:, 2] > 2.35)
-            & (transformed_points[:, 0] > 1.7)
-            & (transformed_points[:, 0] < 23.2)
-            & (transformed_points[:, 1] < 20.2)
-            & (transformed_points[:, 1] > -1)
-        ]
+                box_center = np.array(box["center"])
+                for target in self.yolo_targets:
+                    label = target["label"]
+                    conf = target["conf"]
+                    points = target["points"]
 
-        if len(foreground_points) == 0:
-            rospy.logwarn("No foreground points detected, skipping save")
-            return
+                    count_in = sum(
+                        1 for p in points
+                        if self.point_in_box(np.array([p["x"], p["y"], p["z"]]), box_center)
+                    )
+                    ratio = count_in / float(len(points))
+                    if ratio >= self.overlap_threshold:
+                        box["labels"].append({"label": label, "conf": conf})
+                        box["matched"] = True
 
-        # Clustering
-        fg_pcd = o3d.geometry.PointCloud()
-        fg_pcd.points = o3d.utility.Vector3dVector(foreground_points)
-        labels = np.array(fg_pcd.cluster_dbscan(eps=0.25, min_points=30))
+                marker = box["marker"]
 
-        # Process detection results
-        new_detections = []
-        for label in set(labels):
-            if label == -1:
-                continue
-            cluster = fg_pcd.select_by_index(np.where(labels == label)[0])
-            aabb = cluster.get_axis_aligned_bounding_box()
-            center = aabb.get_center()
-            extent = aabb.get_extent()
+        self.publish_active_boxes()
+        self.try_publish_bridgehead_if_ready(msg)
 
-            # Classify object type based on y-axis position
-            if center[1] <= 9 and center[1] >= 1.5:
-                obj_type = "bridge"
-            elif extent[0] * extent[1] >= 0.6 * 0.2:
-                obj_type = "box"
-            else:
-                obj_type = "unknown"
+    def try_publish_bridgehead_if_ready(self, msg):
+        # Step 1: Check if all tracked boxes are matched and all box IDs match the current MarkerArray
+        msg_ids = {marker.id for marker in msg.markers if marker.ns == "box"}
+        tracked_ids = {box["id"] for box in self.tracked_boxes}
+        all_matched = all(box["matched"] for box in self.tracked_boxes)
 
-            new_detections.append(
-                {
-                    "type": obj_type,
-                    "center": center.tolist(),
-                    "min_bound": aabb.min_bound.tolist(),
-                    "max_bound": aabb.max_bound.tolist(),
-                    "extent": extent.tolist(),
-                }
-            )
+        # Step 2: Check if there are any YOLO targets not matched to any existing box
+        unmatched_labels = set()
+        tracked_centers = [np.array(box["center"]) for box in self.tracked_boxes]
 
-        # Merge detections and save to JSON
-        self.all_detections.extend(new_detections)
-        self.save_to_json()
+        for target in self.yolo_targets:
+            label = target["label"]
+            points = target["points"]
 
-        # Publish visualization markers
-        self.publish_markers()
+            all_outside = True
+            for p in points:
+                pt = np.array([p["x"], p["y"], p["z"]])
+                if any(self.point_in_box(pt, center) for center in tracked_centers):
+                    all_outside = False
+                    break
 
-        rospy.loginfo(f"Total detected objects: {len(self.all_detections)}")
+            if all_outside:
+                unmatched_labels.add(label)
 
-    def save_to_json(self):
-        """ Save merged bbox results to JSON file """
-        with open(self.json_file, "w") as f:
-            json.dump({"bboxes": self.all_detections}, f, indent=4)
+        # Step 3: Proceed only if all boxes are matched and no unmatched targets remain
+        if msg_ids == tracked_ids and all_matched and not unmatched_labels:
+            rospy.loginfo("[Navigator] All boxes matched and no unmatched YOLO targets remain. Proceeding to compute the most probable label and publish the bridge goal.")
 
-    def publish_markers(self):
+            # Step 4: Compute average confidence for each label across all matched boxes
+            label_dict = {}
+            for box in self.tracked_boxes:
+                for l in box["labels"]:
+                    label = l["label"]
+                    conf = l["conf"]
+                    if label not in label_dict:
+                        label_dict[label] = []
+                    label_dict[label].append(conf)
+
+            if not label_dict:
+                rospy.logwarn("[Navigator] No label data available for confidence computation.")
+                return
+
+            label_avg_conf = {k: sum(v) / len(v) for k, v in label_dict.items()}
+            best_label = max(label_avg_conf.items(), key=lambda x: x[1])[0]
+            rospy.loginfo(f"[Navigator] Final selected label: {best_label}")
+
+            # Step 5: Assign the selected label to all tracked boxes
+            for box in self.tracked_boxes:
+                box["label"] = best_label
+
+            # Step 6: Locate the bridge marker and publish its position as the next goal
+            for marker in msg.markers:
+                if marker.ns == "bridge":
+                    position = marker.pose.position
+                    rospy.loginfo(f"[Navigator] Publishing bridge goal at: ({position.x:.2f}, {position.y:.2f}, {position.z:.2f})")
+                    self.publish_goal([position.x, position.y + self.box_half, position.z])
+                    self.publish_arrow_marker([position.x, position.y, position.z])
+                    break
+        else:
+            if unmatched_labels:
+                rospy.logwarn(f"[Navigator] Unmatched YOLO labels found: {list(unmatched_labels)}")
+            if not all_matched:
+                rospy.loginfo("[Navigator] Some boxes are still unmatched. Waiting for further recognition...")
+
+    def publish_active_boxes(self):
         marker_array = MarkerArray()
-        for idx, detection in enumerate(self.all_detections):
-            marker = Marker()
-            marker.header.frame_id = "map"
-            marker.header.stamp = rospy.Time.now()
-            marker.ns = detection["type"]
-            marker.id = idx
-            marker.type = Marker.CUBE
-            marker.action = Marker.ADD
+        for box in self.tracked_boxes:
+            if not box["matched"]:
+                marker_array.markers.append(box["marker"])
+        self.last_bbox_msg = marker_array  
+        print('self.last_bbox_msg',self.last_bbox_msg, 'self.tracked_boxes',self.tracked_boxes)
+        # self.bbox_marker_pub.publish(marker_array)
 
-            # Set position
-            marker.pose.position.x = detection["center"][0]
-            marker.pose.position.y = detection["center"][1]
-            marker.pose.position.z = detection["center"][2]
-            marker.pose.orientation.w = 1.0
+    def status_callback(self, msg):
+        """Publish new target based on status"""
+        self.reach_goal = msg.data
 
-            # Set size
-            marker.scale.x = detection["extent"][0]
-            marker.scale.y = detection["extent"][1]
-            marker.scale.z = detection["extent"][2]
+        if self.reach_goal:
+            rospy.loginfo("Target reached, computing new target...")
+            if self.last_bbox_msg:
+                self.find_and_publish_new_goal(self.last_bbox_msg)
+        else:
+            if self.last_goal_position is not None:
+                rospy.loginfo("Target not reached, continue publishing current target...")
+                self.publish_goal(self.last_goal_position)
+                self.publish_arrow_marker(self.last_goal_position)
 
-            # Set color based on type
-            if detection["type"] == "box":
-                marker.color.r = 1.0  # Red
-                marker.color.a = 0.5
-            elif detection["type"] == "bridge":
-                marker.color.b = 1.0  # Blue
-                marker.color.a = 0.5
-            else:
-                marker.color.r = 0.5
-                marker.color.g = 0.5
-                marker.color.b = 0.5
-                marker.color.a = 0.5
+    def find_and_publish_new_goal(self, msg):
+        """Compute the furthest box and publish the target"""
+        max_distance = -1
+        furthest_box_position = None
 
-            marker.lifetime = rospy.Duration(0.5)
-            marker_array.markers.append(marker)
+        for marker in msg.markers:
+            if marker.ns != "box":
+                continue
+            if marker.pose.position.y <= 9:
+                continue  #  Ignore the opposite side of the bridge
 
-        self.marker_pub.publish(marker_array)
+            box_pos = np.array([
+                marker.pose.position.x,
+                marker.pose.position.y,
+                marker.pose.position.z
+            ])
 
-    def run(self):
-        """ Run ROS listener """
-        rospy.spin()
+            robot_pos = self.current_pose[:3, 3]
+            distance = np.linalg.norm(box_pos - robot_pos)
 
+            if distance > max_distance:
+                max_distance = distance
+                furthest_box_position = box_pos
+
+        if furthest_box_position is not None:
+            self.last_goal_position = furthest_box_position
+            self.publish_goal(furthest_box_position)
+            self.publish_arrow_marker(furthest_box_position)
+            
+
+    def publish_goal(self, position):
+        goal_msg = PoseStamped()
+        goal_msg.header.stamp = rospy.Time.now()
+        goal_msg.header.frame_id = "map"
+        goal_msg.pose.position.x = position[0]
+        goal_msg.pose.position.y = position[1]
+        goal_msg.pose.position.z = position[2]
+
+        goal_msg.pose.orientation.x = 0.0
+        goal_msg.pose.orientation.y = 0.0
+        goal_msg.pose.orientation.z = 0.0
+        goal_msg.pose.orientation.w = 1.0
+
+        self.goal_pub.publish(goal_msg)
+        rospy.loginfo(f"Target point: ={position[0]:.2f}, y={position[1]:.2f}, z={position[2]:.2f}")
+
+    def publish_arrow_marker(self, position):
+        marker = Marker()
+        marker.header.frame_id = "map"
+        marker.header.stamp = rospy.Time.now()
+        marker.ns = "goal_arrow"
+        marker.id = 0
+        marker.type = Marker.ARROW
+        marker.action = Marker.ADD
+
+        from geometry_msgs.msg import Point
+        start_point = self.current_pose[:3, 3]
+        end_point = position
+        marker.points = [Point(x=start_point[0], y=start_point[1], z=start_point[2]),
+                         Point(x=end_point[0], y=end_point[1], z=end_point[2])]
+
+        marker.scale.x = 0.1
+        marker.scale.y = 0.2
+        marker.scale.z = 0.2
+
+        marker.color.r = 0.0
+        marker.color.g = 1.0
+        marker.color.b = 0.0
+        marker.color.a = 1.0
+
+        marker.lifetime = rospy.Duration(1.0)
+        self.marker_pub.publish(marker)
 
 if __name__ == "__main__":
-    processor = PointCloudProcessor()
-    processor.run()
+    try:
+        FurthestBoxNavigator()
+    except rospy.ROSInterruptException:
+        pass

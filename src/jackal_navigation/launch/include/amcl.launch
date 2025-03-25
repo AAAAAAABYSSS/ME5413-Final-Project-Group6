@@ -1,10 +1,10 @@
 <launch>
 
   <arg name="use_map_topic" default="false"/>
+  <remap from="scan" to="scan_multi"/>
 
   <node pkg="amcl" type="amcl" name="amcl">
     <param name="use_map_topic" value="$(arg use_map_topic)"/>
-    <remap from="scan" to="scan_multi"/>
     <!-- Publish scans from best pose at a max of 10 Hz -->
     <param name="odom_model_type" value="diff"/>
     <param name="odom_alpha5" value="0.1"/>
@@ -19,8 +19,6 @@
     <param name="kld_z" value="0.99"/>
     <param name="odom_alpha1" value="0.2"/>
     <param name="odom_alpha2" value="0.2"/>
-    
-    
     <!-- translation std dev, m -->
     <param name="odom_alpha3" value="0.2"/>
     <param name="odom_alpha4" value="0.2"/>

@@ -14,9 +14,11 @@ from std_msgs.msg import String
 class YOLODetector:
     def __init__(self):
         rospy.init_node("yolo_detector", anonymous=True)
+        
+        self.min_conf = rospy.get_param("~min_confidence", 0.7)
 
         self.bridge = CvBridge()
-        self.yolo_pub = rospy.Publisher("/yolo_targets", String, queue_size=10)
+        self.yolo_pub = rospy.Publisher("/perception/yolo_targets", String, queue_size=10)
         self.result_pub = rospy.Publisher("/front/image_result", Image, queue_size=1)
 
         # Get the correct model path
@@ -31,7 +33,7 @@ class YOLODetector:
             rospy.logerr(f"Model file not found: {model_path}")
             rospy.signal_shutdown("Model file missing.")
             return
-
+        
         try:
             self.model = YOLO(model_path)  # Load YOLO model
             rospy.loginfo("YOLO model loaded successfully.")
@@ -67,6 +69,9 @@ class YOLODetector:
                     label = int(box.cls)  # Object class (0-9)
                     conf = float(box.conf)  # Confidence score
 
+                    if conf < self.min_conf:
+                        continue  
+
                     u_center = (x1 + x2) // 2
                     v_center = (y1 + y2) // 2
 
@@ -90,9 +95,9 @@ class YOLODetector:
             self.yolo_pub.publish(json.dumps(target_data))
 
             # Show image only if a GUI environment is available
-            if "DISPLAY" in os.environ:
-                cv2.imshow("YOLO Detection", frame)
-                cv2.waitKey(1)
+            # if "DISPLAY" in os.environ:
+            #     cv2.imshow("YOLO Detection", frame)
+            #     cv2.waitKey(1)
 
             # Publish processed image
             result_msg = self.bridge.cv2_to_imgmsg(frame, encoding="rgb8")

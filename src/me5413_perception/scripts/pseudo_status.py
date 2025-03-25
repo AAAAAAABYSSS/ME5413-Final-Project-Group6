@@ -10,6 +10,8 @@ class PseudoStatus:
     def __init__(self):
         rospy.init_node("pseudo_status", anonymous=True)
 
+        self.min_dist = rospy.get_param("~min_dist", 1.8)
+        
         self.goal_marker = None  # Store nav_goal_marker
         self.current_pose = None  # Current robot pose
         self.goal_received = False  # Whether a goal has been received
@@ -50,7 +52,7 @@ class PseudoStatus:
                     dist = np.linalg.norm(self.current_pose - pt_goal)
                     rospy.loginfo_throttle(1, f"Distance to goal: {dist:.2f}")
 
-                    if dist <= 1.8:
+                    if dist <= self.min_dist:
                         self.status_pub.publish(Bool(data=True))
                         rospy.loginfo("Goal reached: True")
                     else:
