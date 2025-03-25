@@ -1,0 +1,17 @@
+yolo_detector:
+  min_confidence: 0.7
+
+fusion_node:
+  num_closest_points: 3   
+  merge_distance: 0.8
+
+furthest_box_navigator:
+  overlap_threshold: 0.6
+  box_big_size: 2.4
+  bridge_width: 4.0
+
+pseudo_status:
+  min_dist: 2.1
+
+
+  

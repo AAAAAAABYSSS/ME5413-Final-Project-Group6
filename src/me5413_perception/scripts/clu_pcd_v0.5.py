@@ -4,7 +4,7 @@ import sensor_msgs.point_cloud2 as pc2
 from sensor_msgs.msg import PointCloud2, PointField
 from nav_msgs.msg import Odometry
 import numpy as np
-import open3d as o3d  # 用于处理点云
+import open3d as o3d  
 import std_msgs.msg
 import os
 import json
@@ -21,12 +21,13 @@ class PointCloudProcessor:
         self.all_detections = []
 
         # Set save directory
-        self.save_dir = "pcd_map/"
+        self.save_dir = "./pcd_map/"
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
 
         # JSON file path (overwrites each time)
-        self.json_file = "merged_bboxes.json"
+        self.json_file = os.path.join(self.save_dir, "merged_bboxes.json")
+
 
         # Whether to save foreground point cloud
         self.foreground_save = False
@@ -136,7 +137,7 @@ class PointCloudProcessor:
                     "center": center.tolist(),
                     "min_bound": aabb.min_bound.tolist(),
                     "max_bound": aabb.max_bound.tolist(),
-                    "extent": extent.tolist(),
+                    "extent": extent.tolist(),       
                 }
             )
 
@@ -275,7 +276,7 @@ class PointCloudProcessor:
                 marker.color.g = 0.5
                 marker.color.b = 0.5
                 marker.color.a = 0.5
-
+                
             marker.lifetime = rospy.Duration(0.5)  
             marker_array.markers.append(marker)
 
