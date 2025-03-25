@@ -1,4 +1,4 @@
-image: /home/arc/zewen/ME5413_Final_Project/src/me5413_world/maps/nav.pgm
+image: nav.pgm
 resolution: 0.050000
 # origin: [0, 0,0.5]
 origin: [-9.4, -32.250000,0]
