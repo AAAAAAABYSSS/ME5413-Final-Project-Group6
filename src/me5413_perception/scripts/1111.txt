@@ -10,3 +10,21 @@ self.status pub.publish(Bool(data=True))rospy.loginfo("Goal reached: True")else:
 else:
 self.status pub.publish(Bool(data=False))rospy.loginfo("Goal not reached:False")
 rospy.logwarn throttle(5,"Waiting for odometry...")
+
+在所有箱子全部有标记之后，根据list中存储的conf和标记，选择平均cof最高的标记，作为最终标记
+
+判断进入位置之后开启
+
+.sh 文件
+选择启动模块
+
+box下沉，可能涉及到坐标转换
+
+一起记录下来不要屏蔽对岸的箱子，
+
+发布桥的位置
+
+距离问题，一个箱子的两面筛选
+从头开始
+bbox_callback只针对这个作修改，我现在有/yolo_targets_3d这里有识别箱子的结果存储 bbox 数据，订阅发布的话题也写好，因为box的每个面都可能被识别到，因此我需要对我的识别到的数字做一个判断，如果识别到的数字之间的世界坐标系的距离小于0.8那么视为一个数字，记录conf大的那个
+

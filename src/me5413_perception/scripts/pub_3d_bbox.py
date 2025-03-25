@@ -9,28 +9,28 @@ class BBoxTransformer:
     def __init__(self):
         rospy.init_node("bbox_transformer", anonymous=True)
 
-        self.current_pose_inv = None  # Store the inverse transformation from map to base_link
+        self.current_pose_inv = None  # 存储 map->base_link 的逆变换（即 base_link->map 的反向变换）
 
-        # Subscribe to bbox and odom
+        # 订阅 bbox 和 odom
         rospy.Subscriber("/bbox_markers", MarkerArray, self.bbox_callback)
         rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
         rospy.Subscriber("/nav_goal_marker", Marker, self.arrow_callback)
 
-        # Publish transformed bbox
+        # 发布变换后的 bbox
         self.transformed_pub = rospy.Publisher("/bbox_markers_baselink", MarkerArray, queue_size=1)
-        # Publish transformed arrow
+        # 发布变换后的 arrow
         self.arrow_pub = rospy.Publisher("/arrow_marker_baselink", Marker, queue_size=1)
-        self.bbox_list = []
+
 
         rospy.loginfo("BBoxTransformer started.")
         rospy.spin()
 
     def odom_callback(self, msg):
-        """ Get the pose from map to base_link and compute the inverse transformation to base_link to map """
+        """ 获取 map → base_link 的位姿，计算 base_link → map 的逆变换 """
         position = msg.pose.pose.position
         orientation = msg.pose.pose.orientation
 
-        # Construct the transformation matrix from map to base_link
+        # 构造 map->base_link 的变换矩阵 T_map2base
         T_map2base = np.eye(4)
         T_map2base[:3, 3] = [position.x, position.y, position.z]
         rot_matrix = R.from_quat([orientation.x, orientation.y, orientation.z, orientation.w]).as_matrix()
@@ -39,25 +39,25 @@ class BBoxTransformer:
         self.current_pose_inv = np.linalg.inv(T_map2base)
 
     def bbox_callback(self, msg):
-        """ Transform bbox coordinates from map to base_link """
+        """ 将 bbox 从 map 坐标转换到 base_link 坐标 """
         if self.current_pose_inv is None:
-            rospy.logwarn("Waiting for odometry data...")
+            rospy.logwarn("等待里程计数据...")
             return
 
         transformed_array = MarkerArray()
 
         for marker in msg.markers:
-            # Construct homogeneous coordinates
+            # 构建点的齐次坐标
             center_point = np.array([
                 marker.pose.position.x,
                 marker.pose.position.y,
                 marker.pose.position.z,
                 1.0
             ])
-            # Transform to base_link coordinates
+            # 变换到 base_link 坐标
             transformed_center = self.current_pose_inv @ center_point
 
-            # Transform orientation
+            # 朝向变换：marker 原始朝向
             q_marker = [
                 marker.pose.orientation.x,
                 marker.pose.orientation.y,
@@ -66,34 +66,14 @@ class BBoxTransformer:
             ]
             rot_marker = R.from_quat(q_marker)
 
-            # Compute new orientation
-            rot_map2base_mat = self.current_pose_inv[:3, :3]  # 3x3 matrix
-            rot_map2base = R.from_matrix(rot_map2base_mat)  # Convert to Rotation object
+            # 变换后的朝向 = 当前姿态旋转的逆 × 原始 marker 旋转
+            rot_map2base_mat = self.current_pose_inv[:3, :3]  # 3x3矩阵
+            rot_map2base = R.from_matrix(rot_map2base_mat)  # 转换为 Rotation 对象
+            # 旋转相乘
             rot_transformed = rot_map2base * rot_marker
             q_new = rot_transformed.as_quat()
 
-            bbox_data = {
-            "id": marker.id,
-            "X": transformed_center[0],
-            "Y": transformed_center[1],
-            "Z": transformed_center[2],
-            "qx": q_new[0],
-            "qy": q_new[1],
-            "qz": q_new[2],
-            "qw": q_new[3],
-            "width": marker.scale.x,
-            "height": marker.scale.y,
-            "depth": marker.scale.z,
-            "detections": []  
-        }
-            
-        existing_bbox = next((b for b in self.bbox_list if b["id"] == bbox_data["id"]), None)
-        if existing_bbox:
-            existing_bbox["detections"].extend(bbox_data["detections"]) 
-        else:
-            self.bbox_list.append(bbox_data)
-
-            # Create new Marker
+            # 创建新的 Marker
             new_marker = Marker()
             new_marker.header.frame_id = "base_link"
             new_marker.header.stamp = rospy.Time.now()
@@ -102,67 +82,30 @@ class BBoxTransformer:
             new_marker.type = marker.type
             new_marker.action = Marker.ADD
 
-            # Set transformed pose
+            # 设置变换后的位姿
             new_marker.pose.position.x = transformed_center[0]
             new_marker.pose.position.y = transformed_center[1]
             new_marker.pose.position.z = transformed_center[2]
 
-            # Set orientation
+            # 设置朝向
             new_marker.pose.orientation.x = q_new[0]
             new_marker.pose.orientation.y = q_new[1]
             new_marker.pose.orientation.z = q_new[2]
             new_marker.pose.orientation.w = q_new[3]
 
-            # Preserve size and color
+            # 保持尺寸与颜色
             new_marker.scale = marker.scale
             new_marker.color = marker.color
             new_marker.lifetime = rospy.Duration(0.5)
+            # new_marker.lifetime = rospy.Duration(0)
 
             transformed_array.markers.append(new_marker)
 
         self.transformed_pub.publish(transformed_array)
-        rospy.loginfo(f"{len(self.bbox_list)} BBox Data")
-    
-    def finalize_bbox_labels(self):
-        """ 
-        Compute the final label for each BBox based on the highest confidence detections 
-        accumulated throughout the exploration. 
-        """
-        rospy.loginfo("Computing final labels for each BBox...")
-
-        for bbox in self.bbox_list:
-            if not bbox["detections"]:
-                bbox["final_label"] = None
-                continue
-
-            # Compute confidence scores for each label
-            label_confidence = {}
-            for detection in bbox["detections"]:
-                label = detection["label"]
-                conf = detection["conf"]
-                if label in label_confidence:
-                    label_confidence[label].append(conf)
-                else:
-                    label_confidence[label] = [conf]
-
-            # Choose the label with the highest average confidence
-            best_label = max(label_confidence, key=lambda l: sum(label_confidence[l]) / len(label_confidence[l]))
-            bbox["final_label"] = best_label
-
-        rospy.loginfo("Final labels for all BBoxes have been computed.")
-
-        # **Print final BBox data**
-        rospy.loginfo("\n ====== BBox Data ======")
-        for bbox in self.bbox_list:
-            rospy.loginfo(f"   BBox ID: {bbox['id']}")
-            rospy.loginfo(f"   Position: X={bbox['X']:.2f}, Y={bbox['Y']:.2f}, Z={bbox['Z']:.2f}")
-            rospy.loginfo(f"   Detected Classes: {[d['label'] for d in bbox['detections']]}")
-            rospy.loginfo(f"   Confidence Scores: {[d['conf'] for d in bbox['detections']]}")
-            rospy.loginfo(f"   Final Label: {bbox['final_label']}\n")
 
     def arrow_callback(self, marker):
         if self.current_pose_inv is None:
-            rospy.logwarn("Waiting for odometry data...")
+            rospy.logwarn("等待里程计数据...")
             return
 
         transformed_marker = Marker()
@@ -173,7 +116,7 @@ class BBoxTransformer:
         transformed_marker.type = marker.type
         transformed_marker.action = Marker.ADD
 
-        # Transform points[0] and points[1]
+        # 变换 points[0] 和 points[1]
         from geometry_msgs.msg import Point
         transformed_points = []
         for pt in marker.points:
@@ -182,12 +125,13 @@ class BBoxTransformer:
             transformed_points.append(Point(x=pt_trans[0], y=pt_trans[1], z=pt_trans[2]))
         transformed_marker.points = transformed_points
 
-        # Preserve other properties
+        # 保留其它属性
         transformed_marker.scale = marker.scale
         transformed_marker.color = marker.color
         transformed_marker.lifetime = rospy.Duration(1.0)
 
         self.arrow_pub.publish(transformed_marker)
+
 
 if __name__ == "__main__":
     try:
