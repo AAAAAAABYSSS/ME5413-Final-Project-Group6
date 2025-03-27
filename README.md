@@ -26,7 +26,7 @@ git branch
 # * dev or * main
 ```
 
-### 4. Push to the Target Remote Branch Without Pulling `main`
+### 4. Push to the Target Remote Branch Without Pulling `main` (take zewen/navigation as an example)
 
 ```bash
 git push origin dev:zewen/navigation
