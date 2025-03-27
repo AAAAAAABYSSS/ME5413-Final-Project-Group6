@@ -19,7 +19,7 @@ class YOLODetector:
 
         self.bridge = CvBridge()
         self.yolo_pub = rospy.Publisher("/perception/yolo_targets", String, queue_size=10)
-        self.result_pub = rospy.Publisher("/front/image_result", Image, queue_size=1)
+        self.result_pub = rospy.Publisher("/front/image_yolo_detect_result", Image, queue_size=1)
 
         # Get the correct model path
         rospack = rospkg.RosPack()
