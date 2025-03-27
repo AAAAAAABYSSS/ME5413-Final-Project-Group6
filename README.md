@@ -1,5 +1,81 @@
 # ME5413_Final_Project_Group6
 
+---
+
+```markdown
+## Pushing Local Changes to an Existing Remote Branch Without Pulling `main`
+
+### 1. Add the Remote Repository
+
+```bash
+git remote add upstream git@github.com:AAAAAAABYSSS/ME5413-Final-Project-Group6.git
+```
+
+### 2. Confirm the Remote Configuration
+
+```bash
+git remote -v
+# Should show:
+# origin    git@github.com:AAAAAAABYSSS/ME5413-Final-Project-Group6.git
+```
+
+### 3. Check Your Current Local Branch
+
+```bash
+git branch
+# e.g., if you're on `dev`, it should show:
+# * dev
+```
+
+### 4. Push to the Target Remote Branch Without Pulling `main`
+
+```bash
+git push origin dev:zewen/navigation
+```
+
+> This command pushes your local `dev` branch to the remote `zewen/navigation` branch.
+
+---
+
+### 5. Set the Upstream (Optional)
+
+If you want to associate your local branch with the remote `zewen/navigation` branch for future use:
+
+```bash
+git branch --set-upstream-to=origin/zewen/navigation
+```
+
+Then you can simply use:
+
+```bash
+git push
+```
+
+---
+
+## If Push Is Rejected (Non-Fast-Forward Error)
+
+You might encounter this error:
+
+```
+! [rejected]        dev -> zewen/navigation (non-fast-forward)
+```
+
+This means the remote branch has commits that your local branch does not.
+
+### Solution:
+
+- **Confirm with your teammates** that it’s safe to override the remote branch.
+- If confirmed, use force push:
+
+```bash
+git push --force origin dev:zewen/navigation
+```
+
+Use `--force` with caution. This will overwrite the remote history and may discard others’ work if not coordinated properly.
+
+---
+
 NUS ME5413 Autonomous Mobile Robotics Final Project
 
 ![Ubuntu 20.04](https://img.shields.io/badge/OS-Ubuntu_20.04-informational?style=flat&logo=ubuntu&logoColor=white&color=2bbc8a)
