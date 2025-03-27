@@ -2,7 +2,6 @@
 
 ---
 
-```markdown
 ## Pushing Local Changes to an Existing Remote Branch Without Pulling `main`
 
 ### 1. Add the Remote Repository
