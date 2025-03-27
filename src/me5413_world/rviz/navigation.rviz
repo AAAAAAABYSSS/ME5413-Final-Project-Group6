@@ -6,10 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /Sensing1
-        - /Localization1
-        - /Planning1
-        - /Evaluation1
+        - /TF1/Frames1
       Splitter Ratio: 0.6628242135047913
     Tree Height: 372
   - Class: rviz/Selection
@@ -29,7 +26,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: PointCloud2
+    SyncSource: LaserScan
   - Class: rviz_panel::ME5413ControlPanel
     Name: ME5413ControlPanel
 Preferences:
@@ -211,13 +208,13 @@ Visualization Manager:
       Visual Enabled: true
     - Class: rviz/InteractiveMarkers
       Enable Transparency: true
-      Enabled: true
+      Enabled: false
       Name: InteractiveMarkers
       Show Axes: false
       Show Descriptions: false
       Show Visual Aids: false
       Update Topic: /twist_marker_server/update
-      Value: true
+      Value: false
     - Class: rviz/Group
       Displays:
         - Acceleration properties:
@@ -247,8 +244,8 @@ Visualization Manager:
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 9.208145141601562
-            Min Value: -1.5674258470535278
+            Max Value: 9.153146743774414
+            Min Value: -1.527848243713379
             Value: true
           Axis: X
           Channel Name: intensity
@@ -344,6 +341,7 @@ Visualization Manager:
               LaserScan: true
               PointCloud2: true
               Value: true
+            TF: true
             Value: true
           Zoom Factor: 1
         - Class: rviz/Image
@@ -693,6 +691,131 @@ Visualization Manager:
           Value: true
       Enabled: true
       Name: Evaluation
+    - Class: rviz/TF
+      Enabled: true
+      Filter (blacklist): ""
+      Filter (whitelist): ""
+      Frame Timeout: 15
+      Frames:
+        All Enabled: false
+        base_link:
+          Value: false
+        chassis_link:
+          Value: false
+        front_camera:
+          Value: false
+        front_camera_beam:
+          Value: false
+        front_camera_mount:
+          Value: false
+        front_camera_optical:
+          Value: false
+        front_fender_link:
+          Value: false
+        front_left_wheel_link:
+          Value: false
+        front_mount:
+          Value: false
+        front_right_wheel_link:
+          Value: false
+        imu_link:
+          Value: false
+        map:
+          Value: false
+        mid_mount:
+          Value: false
+        mid_vlp16_leg1:
+          Value: false
+        mid_vlp16_leg2:
+          Value: false
+        mid_vlp16_leg3:
+          Value: false
+        mid_vlp16_leg4:
+          Value: false
+        mid_vlp16_mount:
+          Value: false
+        mid_vlp16_plate:
+          Value: false
+        navsat_link:
+          Value: false
+        odom:
+          Value: false
+        rear_fender_link:
+          Value: false
+        rear_left_wheel_link:
+          Value: false
+        rear_mount:
+          Value: false
+        rear_right_wheel_link:
+          Value: false
+        tim551:
+          Value: false
+        tim551_2:
+          Value: false
+        tim551_2_mount_link:
+          Value: false
+        tim551_mount_link:
+          Value: false
+        velodyne:
+          Value: true
+        velodyne_base_link:
+          Value: false
+      Marker Alpha: 1
+      Marker Scale: 1
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Tree:
+        map:
+          odom:
+            base_link:
+              chassis_link:
+                front_fender_link:
+                  {}
+                front_left_wheel_link:
+                  {}
+                front_right_wheel_link:
+                  {}
+                imu_link:
+                  {}
+                mid_mount:
+                  front_mount:
+                    front_camera_mount:
+                      front_camera_beam:
+                        front_camera:
+                          front_camera_optical:
+                            {}
+                    tim551_mount_link:
+                      tim551:
+                        {}
+                  mid_vlp16_mount:
+                    mid_vlp16_leg1:
+                      {}
+                    mid_vlp16_leg2:
+                      {}
+                    mid_vlp16_leg3:
+                      {}
+                    mid_vlp16_leg4:
+                      {}
+                    mid_vlp16_plate:
+                      velodyne_base_link:
+                        velodyne:
+                          {}
+                  rear_mount:
+                    tim551_2_mount_link:
+                      tim551_2:
+                        {}
+                navsat_link:
+                  {}
+                rear_fender_link:
+                  {}
+                rear_left_wheel_link:
+                  {}
+                rear_right_wheel_link:
+                  {}
+      Update Interval: 0
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -721,7 +844,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 11.199999809265137
+      Distance: 2.3705999851226807
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -729,17 +852,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0
-        Y: 0
+        X: -0.6644153594970703
+        Y: 1.1734333038330078
         Z: 0
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7853981852531433
+      Pitch: 0.7803982496261597
       Target Frame: base_link
-      Yaw: 0.7853981852531433
+      Yaw: 1.4753975868225098
     Saved:
       - Class: rviz/ThirdPersonFollower
         Distance: 4

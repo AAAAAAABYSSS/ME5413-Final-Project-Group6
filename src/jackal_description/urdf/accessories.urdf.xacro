@@ -115,13 +115,13 @@
   </xacro:if>
 
   <!-- Secondary 2D Lidar -->
-  <xacro:if value="$(optenv JACKAL_LASER_SECONDARY 0)">
+  <xacro:if value="$(optenv JACKAL_LASER_SECONDARY 1)">
     <xacro:property name="mount" value="$(optenv JACKAL_LASER_SECONDARY_MOUNT rear)" />
     <xacro:property name="topic" value="$(optenv JACKAL_LASER_SECONDARY_TOPIC rear/scan)" />
     <xacro:property name="tower" value="$(optenv JACKAL_LASER_SECONDARY_TOWER 1)" />
     <xacro:property name="prefix" value="$(optenv JACKAL_LASER_SECONDARY_PREFIX ${mount})" />
     <xacro:property name="parent" value="$(optenv JACKAL_LASER_SECONDARY_PARENT ${mount}_mount)" />
-    <xacro:property name="lidar_model" value="$(optenv JACKAL_LASER_SECONDARY_MODEL lms1xx)" />
+    <xacro:property name="lidar_model" value="$(optenv JACKAL_LASER_SECONDARY_MODEL tim551)" />
     <!-- SICK LMS1xx -->
     <xacro:if value="${lidar_model == 'lms1xx'}">
       <!-- Mount Enabled -->
@@ -255,7 +255,7 @@
       <!-- Tower Disabled -->
       <xacro:unless value="${tower}">
         <joint name="${prefix}_navsat_joint" type="fixed">
-          <origin xyz="$(optenv JACKAL_NAVSAT_OFFSET 0 0 0)" rpy="$(optenv JACKAL_NAVSAT_RPY 0 0 0)" />
+          <origin xyz="$(optenv JACKAL_NAVSAT_OFFSET 0 0 0)" rpy="$(optenv JACKAL_NsVSAT_RPY 0 0 0)" />
           <parent link="${parent}" />
           <child link="${prefix}_navsat" />
         </joint>

@@ -1,6 +1,8 @@
 import rospy
 from sensor_msgs.msg import Imu
 import numpy as np
+from tf.transformations import quaternion_multiply, quaternion_inverse
+
 
 class ImuBiasFilter:
     def __init__(self):
@@ -106,17 +108,6 @@ class ImuBiasFilter:
             self.bias_linear_acceleration_x = []
             self.bias_linear_acceleration_y = []
             self.bias_linear_acceleration_z = []
-
-        # rospy.loginfo("Computed Mean Bias:")
-        # rospy.loginfo("Orientation: x=%.4f, y=%.4f, z=%.4f, w=%.4f", 
-        #                 self.mean_orientation_x_bias, self.mean_orientation_y_bias, 
-        #                 self.mean_orientation_z_bias, self.mean_orientation_w_bias)
-        # rospy.loginfo("Angular Velocity: x=%.4f, y=%.4f, z=%.4f", 
-        #                 self.mean_angular_velocity_x_bias, self.mean_angular_velocity_y_bias, 
-        #                 self.mean_angular_velocity_z_bias)
-        # rospy.loginfo("Linear Acceleration: x=%.4f, y=%.4f, z=%.4f", 
-        #                 self.mean_linear_acceleration_x_bias, self.mean_linear_acceleration_y_bias, 
-        #                 self.mean_linear_acceleration_z_bias)
     
     def filter_imu(self, msg):
         """Callback function to filter the IMU."""
@@ -124,10 +115,20 @@ class ImuBiasFilter:
                 # Apply bias correction if means are computed
                 
         if self.mean_orientation_x_bias is not None:
-            msg.orientation.x -= self.mean_orientation_x_bias
-            msg.orientation.y -= self.mean_orientation_y_bias
-            msg.orientation.z -= self.mean_orientation_z_bias
-            msg.orientation.w -= self.mean_orientation_w_bias
+            # msg.orientation.x -= self.mean_orientation_x_bias
+            # msg.orientation.y -= self.mean_orientation_y_bias
+            # msg.orientation.z -= self.mean_orientation_z_bias
+            # msg.orientation.w -= self.mean_orientation_w_bias
+            
+            q_array = [msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w]
+            bias_array = [self.mean_orientation_x_bias, self.mean_orientation_y_bias, self.mean_orientation_z_bias, self.mean_orientation_w_bias]
+            q_bias = quaternion_inverse(bias_array)
+            q_corrected = quaternion_multiply(q_array, q_bias)
+            msg.orientation.x = q_corrected[0]
+            msg.orientation.y = q_corrected[1]
+            msg.orientation.z = q_corrected[2]
+            msg.orientation.w = q_corrected[3]
+            
             
             msg.angular_velocity.x -= self.mean_angular_velocity_x_bias
             msg.angular_velocity.y -= self.mean_angular_velocity_y_bias

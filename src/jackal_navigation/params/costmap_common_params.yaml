@@ -20,6 +20,7 @@ plugins:
 obstacles_layer:
   observation_sources: scan
   scan: {sensor_frame: mid_mount, data_type: LaserScan, topic: scan_multi, marking: true, clearing: true, min_obstacle_height: -2.0, max_obstacle_height: 2.0, obstacle_range: 2.5, raytrace_range: 3.0}
-
+  # scan: {sensor_frame: velodyne, data_type: PointCloud2, topic: /mid/points, marking: true, clearing: true, min_obstacle_height: -2.0, max_obstacle_height: 2.0, obstacle_range: 2.5, raytrace_range: 3.0}
 inflater_layer:
- inflation_radius: 0.30
+ inflation_radius: 0.3
+ cost_scaling_factor: 2
