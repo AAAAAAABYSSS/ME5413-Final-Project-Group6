@@ -8,6 +8,7 @@ import open3d as o3d
 import std_msgs.msg
 import os
 import json
+
 from scipy.spatial.transform import Rotation as R
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -36,7 +37,7 @@ class PointCloudProcessor:
         rospy.Subscriber("/mid/points", PointCloud2, self.pointcloud_callback)
         rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
 
-        self.marker_pub = rospy.Publisher("/bbox_markers", MarkerArray, queue_size=1)
+        self.marker_pub = rospy.Publisher("/perception/marker/bbox_markers", MarkerArray, queue_size=1)
 
         rospy.loginfo("Subscribed to /mid/points and /gazebo/ground_truth/state topics")
 

@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import tf
+import json
 import rospy
 import numpy as np
 from geometry_msgs.msg import PoseStamped, Point
@@ -6,8 +8,6 @@ from visualization_msgs.msg import MarkerArray, Marker
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Bool, String
 from scipy.spatial.transform import Rotation as R
-import json
-import tf
 
 class FurthestBoxNavigator:
     def __init__(self):
@@ -29,15 +29,17 @@ class FurthestBoxNavigator:
         self.unfinished_directions = []
         self.finished_directions = set()
 
-        rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
-        rospy.Subscriber("/bbox_markers", MarkerArray, self.bbox_callback)
         rospy.Subscriber("/move_base/status", Bool, self.status_callback)
+        rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
+        
+        rospy.Subscriber("/perception/marker/bbox_markers", MarkerArray, self.bbox_callback)
         rospy.Subscriber("/perception/yolo_targets_3d", String, self.yolo_callback)
+
         rospy.Subscriber("/one_rot/finish_status", Bool, self.rot_status_callback)
         rospy.Subscriber("/one_rot/end_status", Bool, self.rot_end_callback)
 
         self.goal_pub = rospy.Publisher("/move_base_simple/goal", PoseStamped, queue_size=1)
-        self.marker_pub = rospy.Publisher("/nav_goal_marker", Marker, queue_size=1)
+        self.marker_pub = rospy.Publisher("/perception/marker/nav_goal_marker", Marker, queue_size=1)
         self.unfinished_pub = rospy.Publisher("/one_rot/unfinished_boxes", String, queue_size=1)
 
         rospy.loginfo("FurthestBoxNavigator Initialization completed")
@@ -93,6 +95,7 @@ class FurthestBoxNavigator:
                     if ratio >= self.overlap_threshold:
                         box["labels"].append({"label": label, "conf": conf})
                         box["matched"] = True
+
         self.publish_active_boxes()
         self.try_publish_bridgehead_if_ready(msg)
 
@@ -138,43 +141,51 @@ class FurthestBoxNavigator:
      
     def end_status_callback(self, msg):
         if msg.data and self.last_bbox_msg:
-            self.find_and_publish_new_goal(self.last_bbox_msg)
+            self.find_and_publish_new_goal()
 
     def status_callback(self, msg):
         self.reach_goal = msg.data
         if self.reach_goal:
             rospy.loginfo("Target reached, computing new target...")
             if self.last_bbox_msg:
-                self.find_and_publish_new_goal(self.last_bbox_msg)
+                self.find_and_publish_new_goal()
         else:
             if self.last_goal_position is not None:
                 rospy.loginfo("Continue current target...")
                 self.publish_goal(self.last_goal_position)
                 self.publish_arrow_marker(self.last_goal_position)
 
-    def find_and_publish_new_goal(self, msg):
+    def find_and_publish_new_goal(self):
         max_distance = -1
         furthest_box_position = None
-        for marker in msg.markers:
-            if marker.ns != "box" or marker.pose.position.y <= 9:
-                continue
-            box_pos = np.array([marker.pose.position.x, marker.pose.position.y, marker.pose.position.z])
-            robot_pos = self.current_pose[:3, 3]
-            distance = np.linalg.norm(box_pos - robot_pos)
-            if distance > max_distance:
-                max_distance = distance
-                furthest_box_position = box_pos
+
+        for box in self.tracked_boxes:
+            if not box["matched"]:
+                marker = box["marker"]
+                if marker.ns != "box" or marker.pose.position.y <= 9:
+                    continue
+                box_pos = np.array([
+                    marker.pose.position.x,
+                    marker.pose.position.y,
+                    marker.pose.position.z
+                ])
+                robot_pos = self.current_pose[:3, 3]
+                distance = np.linalg.norm(box_pos - robot_pos)
+
+                if distance > max_distance:
+                    max_distance = distance
+                    furthest_box_position = box_pos
+
         if furthest_box_position is not None:
             self.last_goal_position = furthest_box_position
             self.publish_goal(furthest_box_position)
             self.publish_arrow_marker(furthest_box_position)
-    
+
     def rot_end_callback(self, msg):
         if msg.data:  
             rospy.loginfo("[Rotation] One rotation finished. Computing new goal...")
             if self.last_bbox_msg:
-                self.find_and_publish_new_goal(self.last_bbox_msg)
-
+                self.find_and_publish_new_goal()
 
     def rot_status_callback(self, msg):
         if not msg.data:

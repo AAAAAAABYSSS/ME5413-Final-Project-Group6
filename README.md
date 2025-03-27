@@ -175,9 +175,13 @@ There are two sources of models needed:
 This command will launch the gazebo with the project world
 
 ```bash
-# Launch Gazebo World together with our robot
-roslaunch me5413_world world.launch
+# you can selection the mode 
+cd ME5413_Final_Project
+bash ./scripts/start.sh
 ```
+
+
+
 
 ### 1. Manual Control
 
