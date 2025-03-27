@@ -22,14 +22,16 @@ git remote -v
 
 ```bash
 git branch
-# e.g., if you're on `dev`, it should show:
-# * dev
+# e.g., if you're on `dev` or `main`, it should show:
+# * dev or * main
 ```
 
 ### 4. Push to the Target Remote Branch Without Pulling `main`
 
 ```bash
 git push origin dev:zewen/navigation
+# or
+git push origin main:zewen/navigation
 ```
 
 > This command pushes your local `dev` branch to the remote `zewen/navigation` branch.
