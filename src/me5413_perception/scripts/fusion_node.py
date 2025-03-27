@@ -78,43 +78,45 @@ class FusionNode:
             transformed.append(pt_trans[:3])
         return transformed
 
-    def merge_nearby_labels(self, output, distance_threshold):
-        merged = []
-        used = [False] * len(output)
+    # def merge_nearby_labels(self, output, distance_threshold):
+    #     merged = []
+    #     used = [False] * len(output)
 
-        for i in range(len(output)):
-            if used[i]:
-                continue
-            curr = output[i]
-            curr_pts = curr["points"]
-            matched_flag = False
+    #     for i in range(len(output)):
+    #         if used[i]:
+    #             continue
+    #         curr = output[i]
+    #         curr_pts_map = curr["points_map"]
+    #         curr_pts_base = curr["points_base"]
+    #         matched_flag = curr["matched"]
 
-            for j in range(i + 1, len(output)):
-                if used[j]:
-                    continue
-                other = output[j]
-                if curr["label"] != other["label"]:
-                    continue
+    #         for j in range(i + 1, len(output)):
+    #             if used[j]:
+    #                 continue
+    #             other = output[j]
+    #             if curr["label"] != other["label"]:
+    #                 continue
 
-                center_i = np.mean([[p["x"], p["y"], p["z"]] for p in curr_pts], axis=0)
-                center_j = np.mean([[p["x"], p["y"], p["z"]] for p in other["points"]], axis=0)
-                dist = np.linalg.norm(center_i - center_j)
+    #             center_i = np.mean([[p["x"], p["y"], p["z"]] for p in curr_pts], axis=0)
+    #             center_j = np.mean([[p["x"], p["y"], p["z"]] for p in other["points_map"]], axis=0)
+    #             dist = np.linalg.norm(center_i - center_j)
 
-                if dist < distance_threshold:
-                    curr_pts += other["points"]
-                    used[j] = True
-                    matched_flag = True
+    #             if dist < distance_threshold:
+    #                 curr_pts += other["points_map"]
+    #                 used[j] = True
+    #                 matched_flag = True
 
-            merged.append({
-                "label": curr["label"],
-                "conf": curr["conf"],
-                "u_center": curr["u_center"],
-                "v_center": curr["v_center"],
-                "matched": matched_flag,
-                "points": curr_pts
-            })
+    #         merged.append({
+    #             "label": curr["label"],
+    #             "conf": curr["conf"],
+    #             "u_center": curr["u_center"],
+    #             "v_center": curr["v_center"],
+    #             "matched": matched_flag,
+    #             "points_base": curr_pts_base,
+    #             "points_map": curr_pts_map
+    #         })
 
-        return merged
+    #     return merged
 
     def process_data(self):
         while not rospy.is_shutdown():
@@ -170,10 +172,13 @@ class FusionNode:
                             "conf": conf,
                             "u_center": u_center,
                             "v_center": v_center,
-                            "points": [{"x": p[0], "y": p[1], "z": p[2]} for p in nearby_points_map]
+                            "matched": False,
+                            "points_base": [{"x": q[0], "y": q[1], "z": q[2]} for q in nearby_points_base],
+                            "points_map": [{"x": p[0], "y": p[1], "z": p[2]} for p in nearby_points_map]
                         })
-                    merged_output = self.merge_nearby_labels(output, self.merge_distance)
-                    self.target_3d_pub.publish(json.dumps(merged_output))
+                    # merged_output = self.merge_nearby_labels(output, self.merge_distance)
+                    # print(merged_output)
+                    self.target_3d_pub.publish(json.dumps(output))
                    
 
                 except Exception as e:

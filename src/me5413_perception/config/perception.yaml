@@ -7,12 +7,18 @@ fusion_node:
 
 furthest_box_navigator:
   overlap_threshold: 0.6
-  box_big_size: 2.4
   bridge_width: 4.0
   yaw_bin_size: 20
 
 pseudo_status:
-  min_dist: 2.1
+  min_dist: 2.4
+
+fusion_merged_node:
+  box_big_size: 1.2
+  point_inside_ratio_threshold: 0.8
+  max_history: 30
+  # unmatch_max: 10
+
 
 
   

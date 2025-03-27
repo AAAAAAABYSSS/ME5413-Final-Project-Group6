@@ -1,105 +1,155 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import rospy
 import json
 import numpy as np
-from visualization_msgs.msg import Marker, MarkerArray
-from std_msgs.msg import ColorRGBA
-from geometry_msgs.msg import Point
 from std_msgs.msg import String
+from nav_msgs.msg import Odometry
+from collections import defaultdict
+from scipy.spatial.transform import Rotation as R
+from visualization_msgs.msg import MarkerArray, Marker
 
-class YOLORVizMarker:
+class FusionVisualizer:
     def __init__(self):
-        rospy.init_node("yolo_rviz_marker", anonymous=True)
-        self.marker_pub = rospy.Publisher("/perception/yolo_markers", MarkerArray, queue_size=10)
-        self.yolo_targets_3d = []
-        rospy.Subscriber("/perception/yolo_targets_3d", String, self.yolo_callback)
-        self.rate = rospy.Rate(10)
+        rospy.init_node("visualize_fusion", anonymous=False)
 
-    def yolo_callback(self, msg):
-        try:
-            self.yolo_targets_3d = json.loads(msg.data)  # Parse JSON data
-        except Exception as e:
-            rospy.logerr(f"Error parsing YOLO 3D target JSON: {e}")
-
-    def filter_close_points(self, targets, min_distance=0.2):
-        """
-        Filter out target points that are too close to each other
-        :param targets: Original YOLO target points list
-        :param min_distance: Minimum distance threshold, points closer than this will be merged
-        :return: Filtered target points list
-        """
-        filtered_targets = []
+        self.fusion_info = {}  # marker_id -> list of {label, conf}
+        rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
+        self.sub_info = rospy.Subscriber("/perception/fusion_box_labels", String, self.fusion_info_callback)
+        self.sub_markers = rospy.Subscriber("/perception/marker/bbox_markers_fusion", MarkerArray, self.marker_callback)
         
-        for target in targets:
-            x, y, z = target["X"], target["Y"], target["Z"]
-            
-            too_close = any(
-                np.linalg.norm(np.array([x, y, z]) - np.array([t["X"], t["Y"], t["Z"]])) < min_distance
-                for t in filtered_targets
-            )
+        self.pub_visual = rospy.Publisher("/perception/marker/bbox_markers_visualized", MarkerArray, queue_size=1)
 
-            if not too_close:
-                filtered_targets.append(target)
+    def fusion_info_callback(self, msg):
+        try:
+            self.fusion_info = json.loads(msg.data)
+        except Exception as e:
+            rospy.logwarn(f"[FusionVisualizer] Failed to parse fusion info: {e}")
 
-        rospy.loginfo(f"Filtered target count: {len(filtered_targets)} (Original: {len(targets)})")
-        return filtered_targets
+    def odom_callback(self, msg):
+        position = msg.pose.pose.position
+        orientation = msg.pose.pose.orientation
 
-    def create_markers(self):
-        marker_array = MarkerArray()
-        marker_id = 0
+        T_map2base = np.eye(4)
+        T_map2base[:3, 3] = [position.x, position.y, position.z]
+        rot_matrix = R.from_quat([orientation.x, orientation.y, orientation.z, orientation.w]).as_matrix()
+        T_map2base[:3, :3] = rot_matrix
 
-        filtered_targets = self.filter_close_points(self.yolo_targets_3d)
+        self.current_pose_inv = np.linalg.inv(T_map2base)
 
-        for target in filtered_targets:
-            x, y, z = target["X"], target["Y"], target["Z"]
-            label = target["label"]
-            conf = target["conf"]
+    def marker_callback(self, msg):
+        if self.current_pose_inv is None:
+            rospy.logwarn("[FusionVisualizer] Waiting for odom data...")
+            return
+        visual_out = MarkerArray()
 
-            marker = Marker()
-            marker.header.frame_id = "base_link"
-            marker.header.stamp = rospy.Time.now()
-            marker.ns = "yolo_markers"
-            marker.id = marker_id
-            marker.type = Marker.SPHERE
-            marker.action = Marker.ADD
-            marker.pose.position.x = x
-            print("target:", target)
-            marker.pose.position.y = y
-            marker.pose.position.z = z
-            marker.scale.x = 0.1
-            marker.scale.y = 0.1
-            marker.scale.z = 0.1
-            marker.color = ColorRGBA(1.0, 0.0, 0.0, 1.0)
-            marker.lifetime = rospy.Duration(1.0)
-            marker_array.markers.append(marker)
-            marker_id += 1
+        for marker in msg.markers:
+            marker_id = str(marker.id)
+            new_marker = Marker()
+            new_marker.header.frame_id = "base_link"  
+            new_marker.header.stamp = rospy.Time.now()
+            new_marker.ns = "visualized"
+            new_marker.id = marker.id
+            new_marker.type = Marker.CUBE
+            new_marker.action = Marker.ADD
 
-            text_marker = Marker()
-            text_marker.header.frame_id = "base_link"
-            text_marker.header.stamp = rospy.Time.now()
-            text_marker.ns = "yolo_labels"
-            text_marker.id = marker_id
-            text_marker.type = Marker.TEXT_VIEW_FACING
-            text_marker.action = Marker.ADD
-            text_marker.pose.position.x = x
-            text_marker.pose.position.y = y
-            text_marker.pose.position.z = z + 0.2
-            text_marker.scale.z = 0.2
-            text_marker.color = ColorRGBA(1.0, 1.0, 1.0, 1.0)
-            text_marker.text = f"Label: {label}\nConf: {conf:.2f}"
-            text_marker.lifetime = rospy.Duration(1.0)
-            marker_array.markers.append(text_marker)
-            marker_id += 1
+            center_point = np.array([
+                marker.pose.position.x,
+                marker.pose.position.y,
+                marker.pose.position.z,
+                1.0
+            ])
 
-        return marker_array
+            transformed_center = self.current_pose_inv @ center_point
 
-    def publish_markers(self):
-        while not rospy.is_shutdown():
-            self.marker_pub.publish(self.create_markers())
-            self.rate.sleep()
+            q_marker = [
+                marker.pose.orientation.x,
+                marker.pose.orientation.y,
+                marker.pose.orientation.z,
+                marker.pose.orientation.w
+            ]
 
-if __name__ == "__main__":
+            rot_marker = R.from_quat(q_marker)
+
+            rot_map2base_mat = self.current_pose_inv[:3, :3]  
+            rot_map2base = R.from_matrix(rot_map2base_mat)  
+            rot_transformed = rot_map2base * rot_marker
+            q_new = rot_transformed.as_quat()
+
+            new_marker.pose.position.x = transformed_center[0]
+            new_marker.pose.position.y = transformed_center[1]
+            new_marker.pose.position.z = transformed_center[2]
+
+            new_marker.pose.orientation.x = q_new[0]
+            new_marker.pose.orientation.y = q_new[1]
+            new_marker.pose.orientation.z = q_new[2]
+            new_marker.pose.orientation.w = q_new[3]
+
+            new_marker.scale.x = marker.scale.x 
+            new_marker.scale.y = marker.scale.y 
+            new_marker.scale.z = marker.scale.z 
+
+            # new_marker.color.r = marker.color.r
+            # new_marker.color.g = marker.color.g
+            # new_marker.color.b = marker.color.b
+            # new_marker.color.a = marker.color.a
+
+            new_marker.lifetime = rospy.Duration(0.5)
+
+            label_stats = defaultdict(list)
+            best_label = None
+            best_conf = 0.0
+
+            if marker_id in self.fusion_info:
+                info = self.fusion_info[marker_id]
+
+                if info.get("matched", False):
+                    new_marker.color.r = 0.0
+                    new_marker.color.g = 1.0
+                    new_marker.color.b = 0.0
+                    new_marker.color.a = 0.5
+                else:
+                    new_marker.color.r = 1.0
+                    new_marker.color.g = 0.0
+                    new_marker.color.b = 0.0
+                    new_marker.color.a = 0.
+
+                if "history" in info:
+                    for entry in info["history"]:
+                        label_stats[entry["label"]].append(entry["conf"])
+
+                    if label_stats:
+                        best_label, best_conf = max(
+                            ((lbl, sum(confs)/len(confs)) for lbl, confs in label_stats.items()),
+                            key=lambda x: x[1]
+                        )
+
+            if best_label is not None:
+                new_marker.text = f"{best_label}: {round(best_conf, 2)}"
+            else:
+                new_marker.text = ""
+
+
+            # new_marker = Marker()
+            # new_marker.header = marker.header
+            # new_marker.ns = "visualized"
+            # new_marker.id = marker.id
+            # new_marker.type = Marker.CUBE
+            # new_marker.action = Marker.ADD
+            # new_marker.pose = marker.pose
+            # new_marker.scale = marker.scale
+            # new_marker.color = marker.color
+            # new_marker.lifetime = rospy.Duration(1.0)
+
+            visual_out.markers.append(new_marker)
+
+        self.pub_visual.publish(visual_out)
+
+
+if __name__ == '__main__':
     try:
-        marker_publisher = YOLORVizMarker()
-        marker_publisher.publish_markers()
+        FusionVisualizer()
+        rospy.spin()
     except rospy.ROSInterruptException:
         pass
