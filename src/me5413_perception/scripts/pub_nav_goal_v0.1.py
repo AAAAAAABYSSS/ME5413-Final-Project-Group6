@@ -62,30 +62,30 @@ class FurthestBoxNavigator:
         self.current_pose[:3, 3] = translation
 
     def bbox_callback(self, msg):
-        self.last_bbox_msg = msg
-        print(self.last_bbox_msg)
-        # self.last_bbox = MarkerArray()
-        # label_set = set()
-        # bridge_found = False
+        # self.last_bbox_msg = msg
+        # print(self.last_bbox_msg)
+        self.last_bbox = MarkerArray()
+        label_set = set()
+        bridge_found = False
 
-        # for marker in msg.markers:
-        #     marker_id = str(marker.id)
-        #     if marker.ns != "box":
-        #         if marker.ns == "bridge":
-        #             bridge_found = True
-        #         continue
+        for marker in msg.markers:
+            marker_id = str(marker.id)
+            if marker.ns != "box":
+                if marker.ns == "bridge":
+                    bridge_found = True
+                continue
 
-        #     if marker_id in self.fusion_info:
-        #         info = self.fusion_info[marker_id]
-        #         if info.get("matched", True):
-        #             for h in info.get("history", []):
-        #                 label_set.add(h["label"])
-        #         else:
-        #             self.last_bbox.markers.append(marker)
-        #     else:
-        #         self.last_bbox.markers.append(marker)
-        #     self.last_bbox_msg = self.last_bbox
-        # self.try_publish_bridgehead_if_ready(msg, label_set, bridge_found)
+            if marker_id in self.fusion_info:
+                info = self.fusion_info[marker_id]
+                if info.get("matched", True):
+                    for h in info.get("history", []):
+                        label_set.add(h["label"])
+                else:
+                    self.last_bbox.markers.append(marker)
+            else:
+                self.last_bbox.markers.append(marker)
+            self.last_bbox_msg = self.last_bbox
+        self.try_publish_bridgehead_if_ready(msg, label_set, bridge_found)
 
     def try_publish_bridgehead_if_ready(self, msg, label_set, bridge_found):
         if len(msg.markers) == 10 and len(label_set) >= 4 and bridge_found:
