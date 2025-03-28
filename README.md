@@ -29,6 +29,7 @@ git branch
 ### 4. Push to the Target Remote Branch Without Pulling `main` (take zewen/navigation as an example)
 
 ```bash
+git add .
 git push origin dev:zewen/navigation
 # or
 git push origin main:zewen/navigation
