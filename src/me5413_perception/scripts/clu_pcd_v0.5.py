@@ -20,7 +20,8 @@ class PointCloudProcessor:
         # Initialize storage variables
         self.current_pose = None
         self.all_detections = []
-
+        self.next_unique_id = 0
+        
         # Set save directory
         self.save_dir = "./pcd_map/"
         if not os.path.exists(self.save_dir):
@@ -133,7 +134,8 @@ class PointCloudProcessor:
                 obj_type = "unknown"
                 
             new_detections.append(
-                {
+                {   
+                    "id": self.next_unique_id,
                     "type": obj_type,
                     "center": center.tolist(),
                     "min_bound": aabb.min_bound.tolist(),
@@ -141,12 +143,13 @@ class PointCloudProcessor:
                     "extent": extent.tolist(),       
                 }
             )
+            self.next_unique_id += 1
 
         # Merge bounding boxes iteratively
         self.all_detections = self.merge_bboxes(self.all_detections + new_detections)
 
-        # Save to JSON
-        self.save_to_json()
+        # # Save to JSON
+        # self.save_to_json()
 
         # Publish visualization MarkerArray
         self.publish_markers()
@@ -229,22 +232,29 @@ class PointCloudProcessor:
         center = ((np.array(min_bound) + np.array(max_bound)) / 2).tolist()
         extent = (np.array(max_bound) - np.array(min_bound)).tolist()
 
-        return {"type": box1["type"], "center": center, "min_bound": min_bound, "max_bound": max_bound, "extent": extent}
-    
-    def save_to_json(self):
-        """ Publish markers for visualization """
-        with open(self.json_file, "w") as f:
-            json.dump({"bboxes": self.all_detections}, f, indent=4)
+        return {
+            "id": box1["id"], 
+            "type": box1["type"],
+            "center": center,
+            "min_bound": min_bound,
+            "max_bound": max_bound,
+            "extent": extent
+        }
+    # def save_to_json(self):
+    #     """ Publish markers for visualization """
+    #     # self.all_detections.sort(key=lambda d: (d["center"][0], d["center"][1], d["center"][2]))
+
+    #     with open(self.json_file, "w") as f:
+    #         json.dump({"bboxes": self.all_detections}, f, indent=4)
 
     def publish_markers(self):
         marker_array = MarkerArray()
-        for idx, detection in enumerate(self.all_detections):
+        for detection in self.all_detections:
             marker = Marker()
-            marker.header.frame_id = "map"  
-            # marker.header.frame_id = "map" 
+            marker.header.frame_id = "map"
             marker.header.stamp = rospy.Time.now()
             marker.ns = detection["type"]
-            marker.id = idx
+            marker.id = detection["id"]  
             marker.type = Marker.CUBE
             marker.action = Marker.ADD
 
