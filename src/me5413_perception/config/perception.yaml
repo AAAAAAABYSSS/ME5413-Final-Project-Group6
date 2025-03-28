@@ -1,5 +1,5 @@
 yolo_detector:
-  min_confidence: 0.7
+  min_confidence: 0.75
 
 fusion_node:
   num_closest_points: 3   
