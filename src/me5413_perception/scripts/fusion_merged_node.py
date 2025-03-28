@@ -31,7 +31,7 @@ class FusionMergedNode:
 
         self.pub_marker_fusion = rospy.Publisher("/perception/marker/bbox_markers_fusion", MarkerArray, queue_size=1)
         self.pub_fusion_info = rospy.Publisher("/perception/fusion_box_labels", String, queue_size=1)  # 非 MarkerArray
-
+    
     def yolo_callback(self, msg):
         try:
             with self.lock:
@@ -80,14 +80,12 @@ class FusionMergedNode:
                     self.history_labels[marker.id] = self.history_labels[marker.id][-self.max_history:]
                 
                 if marker.id not in self.match_state:
-                    self.match_state[marker.id] = 0
+                    self.match_state[marker.id] = False
 
                 if matched:
-                    self.match_state[marker.id] = 0
-                    final_matched = True
-                else:
-                    self.match_state[marker.id] += 1
-                    final_matched = self.match_state[marker.id] <= self.unmatch_max
+                    self.match_state[marker.id] = True  
+
+                final_matched = self.match_state[marker.id]  
 
                 marker_copy = Marker()
                 marker_copy.header = Header(frame_id="map", stamp=rospy.Time.now())
