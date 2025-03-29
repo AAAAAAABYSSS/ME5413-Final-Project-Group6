@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import tf
 import json
 import rospy
@@ -19,6 +19,10 @@ class FurthestBoxNavigator:
         self.yaw_bin_size = rospy.get_param("~yaw_bin_size", 30)
         self.box_half = self.box_size / 2.0
 
+        self.fallback_grid_resolution = rospy.get_param("~fallback_grid_resolution", 0.2)
+        self.x_range = rospy.get_param("~x_range", [2.0, 22.0])
+        self.y_range = rospy.get_param("~y_range", [11.0, 19.0])
+
         self.tf_listener = tf.TransformListener()
         self.current_pose = np.eye(4)
         self.reach_goal = True
@@ -31,12 +35,12 @@ class FurthestBoxNavigator:
         self.bridge_ready = False
         self.bridge_position = None
 
+        self.in_fallback_mode = False
 
         rospy.Subscriber("/move_base/status", Bool, self.status_callback)
         rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
         rospy.Subscriber("/perception/marker/bbox_markers_fusion", MarkerArray, self.bbox_callback)
         rospy.Subscriber("/perception/fusion_box_labels", String, self.fusion_info_callback)
-        rospy.Subscriber("/navigation/fallback_recover", Bool, self.recover_callback)
 
         rospy.Subscriber("/one_rot/finish_status", Bool, self.rot_status_callback)
         rospy.Subscriber("/one_rot/end_status", Bool, self.rot_end_callback)
@@ -45,8 +49,67 @@ class FurthestBoxNavigator:
         self.marker_pub = rospy.Publisher("/perception/marker/nav_goal_marker", Marker, queue_size=1)
         self.unfinished_pub = rospy.Publisher("/one_rot/unfinished_boxes", String, queue_size=1)
 
+        rospy.Timer(rospy.Duration(1.0), self.main_loop)
         rospy.loginfo("FurthestBoxNavigator Initialization completed")
         rospy.spin()
+
+    def enter_fallback_mode(self):
+        self.in_fallback_mode = True
+        rospy.logwarn("[Navigator] Entering fallback mode...")
+
+    def exit_fallback_mode(self):
+        self.in_fallback_mode = False
+        rospy.loginfo("[Navigator] Recovered from fallback, returning to normal navigation.")
+
+    def main_loop(self, event):
+        if self.bridge_ready and self.reach_goal:
+            rospy.loginfo("[Main Loop] Publishing bridge goal...")
+            self.last_goal_position = self.bridge_position
+            self.publish_goal(self.bridge_position)
+            self.publish_arrow_marker(self.bridge_position)
+            self.bridge_ready = False
+            return
+        
+        if self.reach_goal and not self.bridge_ready and (self.last_bbox_msg is None or not self.last_bbox_msg.markers):
+            if not self.in_fallback_mode:
+                self.enter_fallback_mode()
+
+            fallback_goal = self.find_fallback_goal()
+            if fallback_goal is not None:
+                self.last_goal_position = fallback_goal
+                self.publish_goal(fallback_goal)
+                self.publish_arrow_marker(fallback_goal)
+        
+        elif self.in_fallback_mode and self.last_bbox_msg and self.last_bbox_msg.markers:
+            self.exit_fallback_mode()
+            self.find_and_publish_new_goal(self.last_bbox_msg)
+
+    def find_fallback_goal(self):
+        x_vals = np.arange(self.x_range[0], self.x_range[1], self.fallback_grid_resolution)
+        y_vals = np.arange(self.y_range[0], self.y_range[1], self.fallback_grid_resolution)
+        X, Y = np.meshgrid(x_vals, y_vals)
+        mask = np.ones_like(X, dtype=bool)
+
+        for marker in (self.last_bbox_msg.markers if self.last_bbox_msg else []):
+            if marker.ns != "box":
+                continue
+            bx, by = marker.pose.position.x, marker.pose.position.y
+            xmin = bx - self.box_size / 2
+            xmax = bx + self.box_size / 2
+            ymin = by - self.box_size / 2
+            ymax = by + self.box_size / 2
+            occupied = (X >= xmin) & (X <= xmax) & (Y >= ymin) & (Y <= ymax)
+            mask[occupied] = False
+
+        free_points = np.column_stack((X[mask], Y[mask]))
+        if len(free_points) == 0:
+            return None
+
+        robot_pos = self.current_pose[:3, 3]
+        dists = np.linalg.norm(free_points - robot_pos[:2], axis=1)
+        fallback_point = free_points[np.argmax(dists)]
+
+        return [fallback_point[0], fallback_point[1], robot_pos[2]]
 
     def fusion_info_callback(self, msg):
         try:
@@ -89,14 +152,6 @@ class FurthestBoxNavigator:
         self.last_bbox_msg = self.last_bbox
         self.try_publish_bridgehead_if_ready(msg, label_set, bridge_found)
     
-    def recover_callback(self, msg):
-        if msg.data:
-            rospy.loginfo("[Navigator] Recovering from fallback...")
-            self.reach_goal = True  # 
-            if self.last_bbox_msg:
-                self.find_and_publish_new_goal(self.last_bbox_msg)
-
-
     def try_publish_bridgehead_if_ready(self, msg, label_set, bridge_found):
         box_count = 0
         bridge_count = 0
@@ -132,13 +187,6 @@ class FurthestBoxNavigator:
                 self.bridge_ready = False
             elif self.last_bbox_msg and self.last_bbox_msg.markers:
                 self.find_and_publish_new_goal(self.last_bbox_msg)
-
-            if self.last_bbox_msg and not self.last_bbox_msg.markers and not self.bridge_ready:
-                rospy.logwarn("No unmatched boxes. Triggering fallback...")
-                fallback_pub = rospy.Publisher("/navigation/fallback_trigger", Bool, queue_size=1, latch=True)
-                rospy.sleep(0.5)
-                fallback_pub.publish(Bool(data=True))
-
         else:
             if self.last_goal_position is not None:
                 rospy.loginfo("Continue current target...")
