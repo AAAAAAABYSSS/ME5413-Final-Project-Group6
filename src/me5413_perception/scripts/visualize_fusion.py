@@ -49,7 +49,7 @@ class FusionVisualizer:
             new_marker = Marker()
             new_marker.header.frame_id = "base_link"  
             new_marker.header.stamp = rospy.Time.now()
-            new_marker.ns = "visualized"
+            new_marker.ns = marker.ns
             new_marker.id = marker.id
             new_marker.type = Marker.CUBE
             new_marker.action = Marker.ADD
@@ -103,16 +103,26 @@ class FusionVisualizer:
 
             if marker_id in self.fusion_info:
                 info = self.fusion_info[marker_id]
-
-                if info.get("matched", True):
+                if new_marker.ns == 'box':
+                    if info.get("matched", True):
+                        new_marker.color.r = 0.0
+                        new_marker.color.g = 1.0
+                        new_marker.color.b = 0.0
+                        new_marker.color.a = 0.5
+                    else:
+                        new_marker.color.r = 1.0
+                        new_marker.color.g = 0.0
+                        new_marker.color.b = 0.0
+                        new_marker.color.a = 0.5
+                elif new_marker.ns == "bridge":
                     new_marker.color.r = 0.0
-                    new_marker.color.g = 1.0
-                    new_marker.color.b = 0.0
+                    new_marker.color.g = 0.0
+                    new_marker.color.b = 1.0 
                     new_marker.color.a = 0.5
                 else:
-                    new_marker.color.r = 1.0
-                    new_marker.color.g = 0.0
-                    new_marker.color.b = 0.0
+                    new_marker.color.r = 0.5
+                    new_marker.color.g = 0.5
+                    new_marker.color.b = 0.5
                     new_marker.color.a = 0.5
 
                 if "history" in info:

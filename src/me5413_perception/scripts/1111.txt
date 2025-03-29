@@ -1,6 +1,4 @@
-box在地底
-baselink
-需要再来一部baselink转velodym
+box在地底？
 
 box下沉，可能涉及到坐标转换
 一起记录下来不要屏蔽对岸的箱子，
