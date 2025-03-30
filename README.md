@@ -15,7 +15,8 @@ git remote add upstream git@github.com:AAAAAAABYSSS/ME5413-Final-Project-Group6.
 ```bash
 git remote -v
 # Should show:
-# origin    git@github.com:AAAAAAABYSSS/ME5413-Final-Project-Group6.git
+# origin    git@github.com:AAAAAAABYSSS/ME5413-Final-Project-Group6.git (fetch)
+# origin    git@github.com:AAAAAAABYSSS/ME5413-Final-Project-Group6.git (push)
 ```
 
 ### 3. Check Your Current Local Branch
@@ -26,10 +27,11 @@ git branch
 # * dev or * main
 ```
 
-### 4. Push to the Target Remote Branch Without Pulling `main` (take zewen/navigation as an example)
+### 4. First Time Push to the Target Remote Branch Without Pulling `main` (take zewen/navigation as an example)
 
 ```bash
 git add .
+git commit -m "XXX"
 git push origin dev:zewen/navigation
 # or
 git push origin main:zewen/navigation
@@ -37,6 +39,13 @@ git push origin main:zewen/navigation
 
 > This command pushes your local `dev` branch to the remote `zewen/navigation` branch.
 
+after first push
+u can just use 
+```
+git add .
+git commit -m "Updated feature X or fixed bug Y"
+git push
+```
 ---
 
 ### 5. Set the Upstream (Optional)
@@ -77,6 +86,76 @@ git push --force origin dev:zewen/navigation
 Use `--force` with caution. This will overwrite the remote history and may discard others’ work if not coordinated properly.
 
 ---
+
+## Additional Precautions (from GPT)
+
+### 1. **Avoid Overwriting Others' Work**
+
+Before pushing, especially to a shared branch like `zewen/navigation`, always check whether others have made changes. Use:
+
+```bash
+git fetch origin
+git log HEAD..origin/zewen/navigation
+```
+
+This shows any commits on the remote that you haven’t merged yet. If there are, consider rebasing or merging first:
+
+```bash
+git merge origin/zewen/navigation
+# or
+git rebase origin/zewen/navigation
+```
+
+---
+
+### 2. **Keep Your Branch Up to Date with Main (or the Base Branch)**
+
+Working too long without syncing with `main` may lead to integration issues later. Even if you're not pulling now, you should regularly **merge or rebase main** into your feature branch:
+
+```bash
+git fetch origin
+git merge origin/main
+# or
+git rebase origin/main
+```
+
+This keeps your branch aligned with the latest stable changes. (After the meeting)
+
+---
+
+### 3. **Set Upstream Properly for Future Pushes**
+
+After the first push, you can link your local branch with the remote using:
+
+```bash
+git push --set-upstream origin zewen/navigation
+```
+
+Then in future commits, a simple `git push` will suffice.
+
+---
+
+### 4. **Use Descriptive Commit Messages**
+
+Avoid generic messages like `update` or `fix`. Instead, describe what the commit does:
+
+- `Fix planner bug when goal is outside map bounds`
+- `Add fallback navigation logic for unmatched boxes`
+
+Clear messages help teammates understand your intent without reading the code directly.
+
+---
+
+### 5. **Test Before You Push**
+
+Make sure the code runs locally before pushing. Consider using:
+
+- `git stash` to temporarily store uncommitted changes
+- `pre-commit` hooks for automatic linting or formatting
+
+---
+
+
 
 NUS ME5413 Autonomous Mobile Robotics Final Project
 
