@@ -36,6 +36,7 @@ class FurthestBoxNavigator:
         self.bridge_position = None
 
         self.in_fallback_mode = False
+        self.has_received_bbox = False
 
         rospy.Subscriber("/move_base/status", Bool, self.status_callback)
         rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
@@ -62,29 +63,62 @@ class FurthestBoxNavigator:
         rospy.loginfo("[Navigator] Recovered from fallback, returning to normal navigation.")
 
     def main_loop(self, event):
-        if self.bridge_ready and self.reach_goal:
-            rospy.loginfo("[Main Loop] Publishing bridge goal...")
-            self.last_goal_position = self.bridge_position
-            self.publish_goal(self.bridge_position)
-            self.publish_arrow_marker(self.bridge_position)
-            self.bridge_ready = False
+        if not self.reach_goal:
             return
-        
-        if self.reach_goal and not self.bridge_ready and (self.last_bbox_msg is None or not self.last_bbox_msg.markers):
-            if not self.in_fallback_mode:
-                self.enter_fallback_mode()
 
-            fallback_goal = self.find_fallback_goal()
-            if fallback_goal is not None:
-                self.last_goal_position = fallback_goal
-                self.publish_goal(fallback_goal)
-                self.publish_arrow_marker(fallback_goal)
-        
-        elif self.in_fallback_mode and self.last_bbox_msg and self.last_bbox_msg.markers:
-            self.exit_fallback_mode()
+        # 0：Waiting for the position of bboxes
+        if not self.has_received_bbox:
+            rospy.loginfo_throttle(5.0, "[Main Loop] Awaiting first bbox detection... Standing by.")
+            return
+
+        # 1：Brige
+        if self.bridge_ready:
+            if not np.allclose(self.last_goal_position, self.bridge_position, atol=0.1):
+                rospy.loginfo("[Main Loop] Bridge is ready, switching goal to bridge.")
+                self.exit_fallback_mode()
+                self.last_goal_position = self.bridge_position
+                self.publish_goal(self.bridge_position)
+                self.publish_arrow_marker(self.bridge_position)
+            return
+
+        # 2：Unmatched box
+        if self.last_bbox_msg and any(m.ns == "box" for m in self.last_bbox_msg.markers):
+            if self.in_fallback_mode:
+                self.exit_fallback_mode()
+            rospy.loginfo("[Main Loop] Navigating to furthest unmatched box.")
             self.find_and_publish_new_goal(self.last_bbox_msg)
+            return
+
+        # 3：Fallback
+        if self.last_bbox_msg and not any(m.ns == "box" for m in self.last_bbox_msg.markers):
+            if self.bridge_ready:
+                rospy.loginfo("[Main Loop] All boxes matched, waiting for bridge goal.")
+                return
+            else:
+                rospy.logwarn("[Main Loop] All boxes matched, bridge not ready or not enough box. Entering fallback.")
+                if not self.in_fallback_mode:
+                    self.enter_fallback_mode()
+                fallback_goal = self.find_fallback_goal()
+                if fallback_goal:
+                    self.last_goal_position = fallback_goal
+                    self.publish_goal(fallback_goal)
+                    self.publish_arrow_marker(fallback_goal)
+                return
 
     def find_fallback_goal(self):
+        label_set = set()
+        box_count = 0
+        for marker_id, info in self.fusion_info.items():
+            matched = info.get("matched", False)
+            if matched:
+                for h in info.get("history", []):
+                    label_set.add(h["label"])
+                box_count += 1
+
+        if box_count >= 10 and len(label_set) >= 4:
+            rospy.loginfo("[Fallback] Box and label threshold met, approaching center to wait for bridge...")
+            return [11.0, 10.5, self.current_pose[2, 3]]
+    
         x_vals = np.arange(self.x_range[0], self.x_range[1], self.fallback_grid_resolution)
         y_vals = np.arange(self.y_range[0], self.y_range[1], self.fallback_grid_resolution)
         X, Y = np.meshgrid(x_vals, y_vals)
@@ -129,7 +163,9 @@ class FurthestBoxNavigator:
         self.current_pose[:3, 3] = translation
 
     def bbox_callback(self, msg):
+        self.has_received_bbox = True
         self.last_bbox = MarkerArray()
+        unmatched_box_count = 0 
         label_set = set()
         bridge_found = False
         
@@ -140,35 +176,67 @@ class FurthestBoxNavigator:
                     bridge_found = True
                 continue
 
+            marker_id = str(marker.id)
+            is_unmatched = True
+
             if marker_id in self.fusion_info:
                 info = self.fusion_info[marker_id]
+                is_unmatched = not info.get("matched", False) 
                 if info.get("matched", True):
                     for h in info.get("history", []):
                         label_set.add(h["label"])
                 else:
                     self.last_bbox.markers.append(marker)
+                
+                if is_unmatched:
+                    self.last_bbox.markers.append(marker)
+                    unmatched_box_count += 1
+
             else:
                 self.last_bbox.markers.append(marker)
         self.last_bbox_msg = self.last_bbox
         self.try_publish_bridgehead_if_ready(msg, label_set, bridge_found)
+        rospy.loginfo(f"[BBoxCallback] Unmatched boxes received: {unmatched_box_count}")
+
+        if self.in_fallback_mode and any(m.ns == "box" for m in self.last_bbox.markers):
+            rospy.loginfo("[BBoxCallback] New unmatched boxes detected during fallback. Switching back to box navigation.")
+            self.exit_fallback_mode()
+            self.find_and_publish_new_goal(self.last_bbox)
+        
+        if self.bridge_ready and self.in_fallback_mode:
+            rospy.loginfo("[BBoxCallback] Bridge now ready during fallback. Switching to bridge goal.")
+            self.exit_fallback_mode()
+            self.last_goal_position = self.bridge_position
+            self.publish_goal(self.bridge_position)
+            self.publish_arrow_marker(self.bridge_position)
+            return
+        
     
     def try_publish_bridgehead_if_ready(self, msg, label_set, bridge_found):
         box_count = 0
         bridge_count = 0
-        all_boxes_in_front = True
         bridge_position = None
+        any_unmatched = False
 
         for marker in msg.markers:
             if marker.ns == "box":
-                box_count += 1
                 if marker.pose.position.y > 9:
-                    all_boxes_in_front = False
+                    box_count += 1
+                    
+                marker_id = str(marker.id)
+                matched = self.fusion_info.get(marker_id, {}).get("matched", True)
+                if not matched:
+                    any_unmatched = True
+
             elif marker.ns == "bridge":
                 bridge_count += 1
                 bridge_position = marker.pose.position
 
-        if (box_count >= 10 and bridge_count == 1 and
-            len(label_set) >= 4 and all_boxes_in_front and bridge_position and bridge_position.y > 9):
+        if (not any_unmatched and box_count >= 10 and bridge_count == 1 and
+            len(label_set) >= 4 and bridge_position):
+            rospy.loginfo(f"[BridgeCheck] box_count={box_count}, bridge_count={bridge_count}, "
+              f"label_set={label_set} "
+              f"bridge_position_y={(bridge_position.y if bridge_position else None)}")
             
             rospy.loginfo("[Navigator] All boxes matched and 4 labels found, bridge exists.")
             self.bridge_ready = True
@@ -180,13 +248,24 @@ class FurthestBoxNavigator:
             rospy.loginfo("Target reached, computing new target...")
 
             if self.bridge_ready:
+                self.exit_fallback_mode()
                 rospy.loginfo("[Navigator] Publishing bridge goal...")
                 self.last_goal_position = self.bridge_position
                 self.publish_goal(self.bridge_position)
                 self.publish_arrow_marker(self.bridge_position)
                 self.bridge_ready = False
-            elif self.last_bbox_msg and self.last_bbox_msg.markers:
+            elif self.last_bbox_msg and any(m.ns == "box" for m in self.last_bbox_msg.markers):
+                self.exit_fallback_mode()
                 self.find_and_publish_new_goal(self.last_bbox_msg)
+
+            else:
+                fallback_goal = self.find_fallback_goal()
+                if fallback_goal:
+                    rospy.loginfo("[Navigator] Continuing fallback...")
+                    self.enter_fallback_mode()
+                    self.last_goal_position = fallback_goal
+                    self.publish_goal(fallback_goal)
+                    self.publish_arrow_marker(fallback_goal)
         else:
             if self.last_goal_position is not None:
                 rospy.loginfo("Continue current target...")
@@ -194,8 +273,14 @@ class FurthestBoxNavigator:
                 self.publish_arrow_marker(self.last_goal_position)
             
 
-
     def find_and_publish_new_goal(self, msg):
+        if self.bridge_ready and self.bridge_position:
+            rospy.loginfo("[Navigator] Conditions met, jumping to bridge goal!")
+            self.last_goal_position = self.bridge_position
+            self.publish_goal(self.bridge_position)
+            self.publish_arrow_marker(self.bridge_position)
+            return
+        
         max_distance = -1
         furthest_box_position = None
 
