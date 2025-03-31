@@ -43,5 +43,9 @@ add_executable(goal_publisher_node src/goal_publisher_node.cpp)
 target_link_libraries(goal_publisher_node ${catkin_LIBRARIES})
 add_dependencies(goal_publisher_node ${catkin_EXPORTED_TARGETS} ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
+add_executable(world_publisher_node src/world_publisher_node.cpp)
+target_link_libraries(world_publisher_node ${catkin_LIBRARIES})
+add_dependencies(world_publisher_node ${catkin_EXPORTED_TARGETS} ${${PROJECT_NAME}_EXPORTED_TARGETS})
+
 add_library(object_spawner_gz_plugin SHARED src/object_spawner_gz_plugin.cpp)
 target_link_libraries(object_spawner_gz_plugin ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})

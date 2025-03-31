@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- load params -->
+  <rosparam command="load" file="$(find hdl_global_localization)/config/general_config.yaml" ns="/hdl_global_localization" />
+  <rosparam command="load" file="$(find hdl_global_localization)/config/bbs_config.yaml" ns="/hdl_global_localization" />
+  <rosparam command="load" file="$(find hdl_global_localization)/config/fpfh_config.yaml" ns="/hdl_global_localization" />
+  <rosparam command="load" file="$(find hdl_global_localization)/config/ransac_config.yaml" ns="/hdl_global_localization" />
+  <rosparam command="load" file="$(find hdl_global_localization)/config/teaser_config.yaml" ns="/hdl_global_localization" />
+
+  <!-- <node pkg="me5413_world" type="world_publisher_node" name="world_publisher_node" output="screen"/>
+  <node pkg="final_demo" type="world2map.py" name="world_to_map_node" output="screen"/> -->
+  <!-- <node pkg="final_demo" type="odom2map.py" name="odom_to_map_node" output="screen"/> -->
+  <node pkg="hdl_global_localization" type="hdl_global_localization_node" name="hdl_global_localization" output="screen"/>
+  
+   <node name="teleop_twist_keyboard" pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py" output="screen" respawn="true"/>
+  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find hdl_localization)/rviz/hdl_localization.rviz" output="log" respawn="true"/>
+
+</launch>
