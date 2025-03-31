@@ -17,7 +17,7 @@ pseudo_status:
 fusion_merged_node:
   box_big_size: 1.2
   point_inside_ratio_threshold: 0.8
-  max_history: 30
+  max_history: 300
   # unmatch_max: 10
 
 fallback_navigator:
