@@ -166,7 +166,7 @@ class FurthestBoxNavigator:
         robot_z = self.current_pose[2, 3]
 
         rospy.loginfo(f"[Fallback] Chosen center of largest free region at x={center_x:.2f}, y={center_y:.2f}")
-        return [center_x, center_y, robot_z]
+        return [center_x, center_y, 3.0]
 
     def fusion_info_callback(self, msg):
         try:
