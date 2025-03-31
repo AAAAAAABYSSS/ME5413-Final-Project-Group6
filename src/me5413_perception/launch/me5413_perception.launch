@@ -3,7 +3,7 @@
 
   <node pkg="me5413_perception" type="yolo_detect.py" name="yolo_detect_node" output="screen" respawn="true" />
 
-  <node pkg="me5413_perception" type="fusion_node.py" name="fusion_node" output="screen" required="true" />
+  <!-- <node pkg="me5413_perception" type="fusion_node.py" name="fusion_node" output="screen" required="true" /> -->
 
   <node pkg="me5413_perception" type="fusion_merged_node.py" name="fusion_merged_node" output="screen" required="true" />
 
@@ -15,7 +15,11 @@
 
   <node pkg="me5413_perception" type="pub_nav_goal.py" name="nav_goal_node" output="screen" required="true" />
 
+<<<<<<< HEAD
   <node pkg="me5413_perception" type="visualize_fusion.py" name="visualize_fusion_node" output="screen" respawn="true" />
+=======
+  <!-- <node pkg="me5413_perception" type="yolo_detect.py" name="yolo_detect_node" output="screen" respawn="true" /> -->
+>>>>>>> ziyue/perception
 
   <!-- <node pkg="me5413_perception" type="fallback_navigator.py" name="fallback_navigator" output="screen" respawn="true" /> -->
 
