@@ -19,5 +19,5 @@
 
   <!-- <node pkg="me5413_perception" type="fallback_navigator.py" name="fallback_navigator" output="screen" respawn="true" /> -->
 
-  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find me5413_perception)/rviz/me5413_perception.rviz" output="log" respawn="true"/>
+  <!-- <node type="rviz" name="rviz" pkg="rviz" args="-d $(find me5413_perception)/rviz/me5413_perception.rviz" output="log" respawn="true"/> -->
 </launch>
