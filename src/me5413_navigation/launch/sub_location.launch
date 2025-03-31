@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="jackal_navigation" type="subscribe_location.py" name="subscribe_location" output="screen"/>
+</launch>

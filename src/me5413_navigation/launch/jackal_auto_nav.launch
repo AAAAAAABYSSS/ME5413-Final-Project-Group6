@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="me5413_navigation" type="jackal_auto_nav.py" name="jackal_auto_rot_nav" output="screen">
+    <param name="pause_duration" value="1.0" />
+  </node>
+</launch>

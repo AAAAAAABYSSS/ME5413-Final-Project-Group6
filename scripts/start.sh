@@ -1,8 +1,16 @@
 #!/bin/bash
 
-# Start roscore
-gnome-terminal --tab -- bash -c "roscore; exec bash"
-sleep 5  # Wait for roscore to initialize
+# Check and install ultralytic
+pip show ultralytics > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+    echo "[INFO] Installing Ultralytics YOLO..."
+    pip install ultralytics
+else
+    echo "[INFO] Ultralytics YOLO is already installed."
+fi
+# # Start roscore
+# gnome-terminal --tab -- bash -c "roscore; exec bash"
+# sleep 5  # Wait for roscore to initialize
 
 # Build workspace
 gnome-terminal --tab -- bash -c "catkin_make -j4; source devel/setup.bash; roslaunch me5413_world world.launch;exec bash"
