@@ -3,11 +3,12 @@ import tf
 import json
 import rospy
 import numpy as np
-from geometry_msgs.msg import PoseStamped, Point
-from visualization_msgs.msg import MarkerArray, Marker
+from scipy.ndimage import label
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Bool, String
 from scipy.spatial.transform import Rotation as R
+from geometry_msgs.msg import PoseStamped, Point
+from visualization_msgs.msg import MarkerArray, Marker
 
 class FurthestBoxNavigator:
     def __init__(self):
@@ -135,15 +136,37 @@ class FurthestBoxNavigator:
             occupied = (X >= xmin) & (X <= xmax) & (Y >= ymin) & (Y <= ymax)
             mask[occupied] = False
 
-        free_points = np.column_stack((X[mask], Y[mask]))
-        if len(free_points) == 0:
+        # free_points = np.column_stack((X[mask], Y[mask]))
+        # if len(free_points) == 0:
+        #     return None
+
+        # robot_pos = self.current_pose[:3, 3]
+        # dists = np.linalg.norm(free_points - robot_pos[:2], axis=1)
+        # fallback_point = free_points[np.argmax(dists)]
+
+        # return [fallback_point[0], fallback_point[1], robot_pos[2]]
+        labeled_mask, num_features = label(mask)
+
+        max_area = 0
+        max_label = -1
+        for i in range(1, num_features + 1):
+            area = np.sum(labeled_mask == i)
+            if area > max_area:
+                max_area = area
+                max_label = i
+
+        region_indices = np.argwhere(labeled_mask == max_label)
+        if len(region_indices) == 0:
+            rospy.logwarn("[Fallback] No valid connected free space found.")
             return None
 
-        robot_pos = self.current_pose[:3, 3]
-        dists = np.linalg.norm(free_points - robot_pos[:2], axis=1)
-        fallback_point = free_points[np.argmax(dists)]
+        center_index = np.mean(region_indices, axis=0)  # [row_idx, col_idx]
+        center_y = y_vals[int(round(center_index[0]))]
+        center_x = x_vals[int(round(center_index[1]))]
+        robot_z = self.current_pose[2, 3]
 
-        return [fallback_point[0], fallback_point[1], robot_pos[2]]
+        rospy.loginfo(f"[Fallback] Chosen center of largest free region at x={center_x:.2f}, y={center_y:.2f}")
+        return [center_x, center_y, robot_z]
 
     def fusion_info_callback(self, msg):
         try:
