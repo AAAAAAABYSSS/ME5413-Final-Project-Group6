@@ -9,10 +9,6 @@ import std_msgs.msg
 import os
 import json
 
-<<<<<<< HEAD
-=======
-from sklearn.linear_model import RANSACRegressor
->>>>>>> ziyue/perception
 from scipy.spatial.transform import Rotation as R
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -25,11 +21,6 @@ class PointCloudProcessor:
         self.current_pose = None
         self.all_detections = []
         self.next_unique_id = 0
-<<<<<<< HEAD
-=======
-        self.ref_x = [1.5, 23.5]
-        self.ref_y = [-1.5, 23.5]
->>>>>>> ziyue/perception
         
         # Set save directory
         self.save_dir = "./pcd_map/"
@@ -39,6 +30,7 @@ class PointCloudProcessor:
         # JSON file path (overwrites each time)
         self.json_file = os.path.join(self.save_dir, "merged_bboxes.json")
 
+
         # Whether to save foreground point cloud
         self.foreground_save = False
 
@@ -46,12 +38,7 @@ class PointCloudProcessor:
         rospy.Subscriber("/mid/points", PointCloud2, self.pointcloud_callback)
         rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
 
-<<<<<<< HEAD
         self.marker_pub = rospy.Publisher("/perception/marker/bbox_markers", MarkerArray, queue_size=1)
-=======
-        # self.marker_pub = rospy.Publisher("/perception/marker/bbox_markers", MarkerArray, queue_size=1)
-        self.marker_pub = rospy.Publisher("bbox_markers", MarkerArray, queue_size=1)
->>>>>>> ziyue/perception
 
         rospy.loginfo("Subscribed to /mid/points and /gazebo/ground_truth/state topics")
 
@@ -69,44 +56,6 @@ class PointCloudProcessor:
         self.current_pose = np.eye(4)
         self.current_pose[:3, :3] = rotation
         self.current_pose[:3, 3] = translation
-
-    # def detect_wall_angle_by_ransac(self, points):
-    #     model = RANSACRegressor()
-    #     x = points[:, 0].reshape(-1, 1)
-    #     y = points[:, 1]
-    #     model.fit(x, y)
-
-    #     a = model.estimator_.coef_[0]
-    #     angle = np.abs(np.arctan(a))
-    #     return angle
-    
-    # def correct_pointcloud_rotation(self, angle_x, points):
-    #     """
-    #     对 points 进行角度校正，使墙面方向恢复平行于 x/y 轴
-    #     """
-
-    #     # rospy.loginfo("Estimated wall angle (radians): %.4f, degrees: %.2f" % (angle, np.rad2deg(angle)))
-
-    #     if angle_x > 0:
-    #         angle_error = np.pi / 2 - angle_x
-    #     else:
-    #         angle_error = -np.pi / 2 - angle_x
-
-    #     rospy.loginfo("Applying correction rotation of %.4f rad (%.2f deg)" % (-angle_error, -np.rad2deg(angle_error)))
-
-    #     # 构造反向旋转矩阵（绕Z轴）
-    #     cos_theta = np.cos(-angle_error)
-    #     sin_theta = np.sin(-angle_error)
-    #     rotation_matrix = np.array([
-    #         [cos_theta, -sin_theta, 0],
-    #         [sin_theta,  cos_theta, 0],
-    #         [0,          0,         1]
-    #     ])
-
-    #     # 应用修正
-    #     transformed_points_corrected = (rotation_matrix @ points.T).T
-
-    #     return transformed_points_corrected
 
 
     def pointcloud_callback(self, msg):
@@ -133,33 +82,21 @@ class PointCloudProcessor:
 
         # Detect abnormal point clouds and skip saving
         if (
-            np.min(transformed_points[:, 0]) < self.ref_x[0]
-            or np.max(transformed_points[:, 0]) > self.ref_x[1]
-            or np.min(transformed_points[:, 1]) < self.ref_y[0]
+            np.min(transformed_points[:, 0]) < 1.5
+            or np.max(transformed_points[:, 0]) > 23.5
+            or np.min(transformed_points[:, 1]) < -1.5
         ):
             rospy.logwarn("Detected abnormal point cloud frame due to rotation, skipped saving")
             return
-            # rospy.logwarn("Detected abnormal point cloud frame due to rotation")
-            # sample_mask = (transformed_points[:, 0] >= self.ref_x[0]) & (transformed_points[:, 0] < self.ref_x[0]+1) & (transformed_points[:, 1] >= self.ref_y[0]) & (transformed_points[:, 1] < self.ref_y[0]+1)
-            # sample_pcd = transformed_points[sample_mask]
-            # delta_angle = self.detect_wall_angle_by_ransac(sample_pcd)
-            # rospy.logwarn(f"!!!!!{delta_angle}, {np.rad2deg(delta_angle)}")
-            # transformed_points = self.correct_pointcloud_rotation(delta_angle, transformed_points)
-
-            # if (
-            #     np.min(transformed_points[:, 0]) < self.ref_x[0]
-            #     or np.max(transformed_points[:, 0]) > self.ref_x[1]
-            #     or np.min(transformed_points[:, 1]) < self.ref_y[0]
-            # ):
-            #     rospy.logwarn("???")
 
         # Segment foreground point cloud
         foreground_points = transformed_points[
             (transformed_points[:, 2] > 2.35)
             & (transformed_points[:, 0] > 1.7)
-            & (transformed_points[:, 0] < 22.5)
-            & (transformed_points[:, 1] < 19.5)
-            & (transformed_points[:, 1] > -0.5)
+            & (transformed_points[:, 0] < 23.2)
+            & (transformed_points[:, 1] < 20.2)
+            # & (transformed_points[:, 1] > 4.9)
+            & (transformed_points[:, 1] > -1)
         ]
 
         if len(foreground_points) == 0:
@@ -169,49 +106,7 @@ class PointCloudProcessor:
         # Perform clustering
         fg_pcd = o3d.geometry.PointCloud()
         fg_pcd.points = o3d.utility.Vector3dVector(foreground_points)
-        # labels = np.array(fg_pcd.cluster_dbscan(eps=0.25, min_points=30))
-
-        # Perform clustering by y-axis segmentation
-        foreground_points = np.array(foreground_points)
-        all_labels = -np.ones(len(foreground_points), dtype=int)    # Initialize all label to be -1 (no cluster result)
-        label_offset = 0  # make sure the labels of each cluster do not overlap
-
-        # Define segments based on y-axis
-        segments = [
-            {"y_range": (9.75, 19.5), "eps": 0.25, "min_points": 30},
-            {"y_range": (1.5, 9.75), "eps": 0.45, "min_points": 30},
-            {"y_range": (-0.5, 1.5), "eps": 0.9, "min_points": 20},
-        ]
-
-        for segment in segments:
-            y_min, y_max = segment["y_range"]
-            eps = segment["eps"]
-            min_points = segment["min_points"]
-
-            # Filter points by y-value
-            mask = (foreground_points[:, 1] >= y_min) & (foreground_points[:, 1] < y_max)
-            segment_points = foreground_points[mask]
-
-            if len(segment_points) == 0:
-                continue
-
-            # Perform clustering
-            sub_pcd = o3d.geometry.PointCloud()
-            sub_pcd.points = o3d.utility.Vector3dVector(segment_points)
-            sub_labels = np.array(sub_pcd.cluster_dbscan(eps=eps, min_points=min_points))
-
-            # Write the sub-cluster label to the original all_labels (record which points in the original array)
-            segment_indices = np.where(mask)[0]
-            for i, idx in enumerate(segment_indices):
-                if sub_labels[i] != -1:
-                    all_labels[idx] = sub_labels[i] + label_offset
-
-            # Update label_offset to avoid label duplication
-            if sub_labels.max() != -1:
-                label_offset += sub_labels.max() + 1
-
-        # Update the labels variable with all_labels
-        labels = all_labels
+        labels = np.array(fg_pcd.cluster_dbscan(eps=0.25, min_points=30))
 
         if self.foreground_save:
             # Generate PCD file
@@ -233,8 +128,7 @@ class PointCloudProcessor:
             # Classify objects based on y-axis position
             if center[1] <= 9 and center[1] >= 1.5:
                 obj_type = "bridge"
-            # elif extent[0] * extent[1] >= 0.6 * 0.2 and extent[0] * extent[1] * extent[2] <= 0.81 * 0.81 * 0.81:
-            elif (extent[0] * extent[2] >= 0.65 * 0.15 or extent[1] * extent[2] >= 0.65 * 0.15) and (extent[0] >= 0.15 or extent[1] >= 0.15) and (extent[0] * extent[1] * extent[2] <= 0.81 * 0.81 * 0.81):
+            elif extent[0] * extent[1] >= 0.6 * 0.2:
                 obj_type = "box"
             else:
                 obj_type = "unknown"
@@ -282,8 +176,7 @@ class PointCloudProcessor:
                 for bbox in remaining_bboxes:
                     if base_bbox["type"] == bbox["type"]:
                         if bbox["type"] == "box":
-                            center_dist = np.linalg.norm(np.array(base_bbox["center"]) - np.array(bbox["center"]))
-                            if self.calculate_iou(base_bbox, bbox) > threshold and center_dist <= 0.5:
+                            if self.calculate_iou(base_bbox, bbox) > threshold:
                                 to_merge.append(bbox)
                                 merge_occurred = True
                             else:
