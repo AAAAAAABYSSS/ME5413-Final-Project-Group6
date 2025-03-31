@@ -15,3 +15,10 @@ global_costmap:
    - {name: static_layer, type: "costmap_2d::StaticLayer"}
    - {name: obstacles_layer, type: "costmap_2d::ObstacleLayer"}
    - {name: inflater_layer, type: "costmap_2d::InflationLayer"}
+
+inflater_layer:
+   cost_scaling_factor: 5
+   # inflation_radius: 3
+   inflation_radius: 0.3
+obstacles_layer:
+   track_unknown_space: true

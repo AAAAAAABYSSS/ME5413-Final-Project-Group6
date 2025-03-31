@@ -1,7 +1,4 @@
 <launch>
-    <!-- Using the simulation clock -->
-    <param name="/use_sim_time" value="true"/>
-
     <!-- Load the project world into Gazebo -->
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
         <arg name="world_name" value="$(find me5413_world)/worlds/me5413_project_2425.world"/>
