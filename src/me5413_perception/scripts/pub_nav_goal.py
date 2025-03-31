@@ -204,16 +204,17 @@ class FurthestBoxNavigator:
 
             if marker_id in self.fusion_info:
                 info = self.fusion_info[marker_id]
-                is_unmatched = not info.get("matched", False) 
-                if info.get("matched", True):
-                    for h in info.get("history", []):
-                        label_set.add(h["label"])
-                else:
-                    self.last_bbox.markers.append(marker)
-                
-                if is_unmatched:
-                    self.last_bbox.markers.append(marker)
-                    unmatched_box_count += 1
+                if marker.pose.position.y > 5.0:
+                    is_unmatched = not info.get("matched", False) 
+                    if info.get("matched", True):
+                        for h in info.get("history", []):
+                            label_set.add(h["label"])
+                    else:
+                        self.last_bbox.markers.append(marker)
+                    
+                    if is_unmatched:
+                        self.last_bbox.markers.append(marker)
+                        unmatched_box_count += 1
 
             else:
                 self.last_bbox.markers.append(marker)

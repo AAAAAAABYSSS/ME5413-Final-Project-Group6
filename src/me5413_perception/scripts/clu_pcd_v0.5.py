@@ -8,6 +8,7 @@ import open3d as o3d
 import std_msgs.msg
 import os
 import json
+import tf
 
 from sklearn.linear_model import RANSACRegressor
 from scipy.spatial.transform import Rotation as R
@@ -24,6 +25,7 @@ class PointCloudProcessor:
         self.next_unique_id = 0
         self.ref_x = [1.5, 23.5]
         self.ref_y = [-1.5, 23.5]
+        self.latest_bbox_markers = None
         
         # Set save directory
         self.save_dir = "./pcd_map/"
@@ -38,27 +40,50 @@ class PointCloudProcessor:
 
         # Subscribe to topics
         rospy.Subscriber("/mid/points", PointCloud2, self.pointcloud_callback)
-        rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
+        # rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
 
-        # self.marker_pub = rospy.Publisher("/perception/marker/bbox_markers", MarkerArray, queue_size=1)
-        self.marker_pub = rospy.Publisher("bbox_markers", MarkerArray, queue_size=1)
+        self.marker_pub = rospy.Publisher("/perception/marker/bbox_markers", MarkerArray, queue_size=1)
+        # self.marker_pub = rospy.Publisher("bbox_markers", MarkerArray, queue_size=1)
+        
+        # Add TF listener
+        self.tf_listener = tf.TransformListener()
 
         rospy.loginfo("Subscribed to /mid/points and /gazebo/ground_truth/state topics")
 
-    def odom_callback(self, msg):
-        """ Process odometry messages and update robot pose """
-        position = msg.pose.pose.position
-        orientation = msg.pose.pose.orientation
+    # def odom_callback(self, msg):
+    #     """ Process odometry messages and update robot pose """
+    #     position = msg.pose.pose.position
+    #     orientation = msg.pose.pose.orientation
 
-        # Compute 4x4 homogeneous transformation matrix (map -> base_link)
-        translation = np.array([position.x, position.y, position.z])
-        rotation = R.from_quat(
-            [orientation.x, orientation.y, orientation.z, orientation.w]
-        ).as_matrix()
+    #     # Compute 4x4 homogeneous transformation matrix (map -> base_link)
+    #     translation = np.array([position.x, position.y, position.z])
+    #     rotation = R.from_quat(
+    #         [orientation.x, orientation.y, orientation.z, orientation.w]
+    #     ).as_matrix()
 
-        self.current_pose = np.eye(4)
-        self.current_pose[:3, :3] = rotation
-        self.current_pose[:3, 3] = translation
+    #     self.current_pose = np.eye(4)
+    #     self.current_pose[:3, :3] = rotation
+    #     self.current_pose[:3, 3] = translation
+
+    def update_pose_from_tf(self):
+        """Get transform from base_link to map and update current_pose"""
+        while not rospy.is_shutdown():
+           try:
+            # (trans,rot) = self.tf_listener.lookupTransform('map', 'base_link', rospy.Time(0))
+            # (trans,rot) = self.tf_listener.lookupTransform('base_link', 'map', rospy.Time(0))
+            (trans,rot) = self.tf_listener.lookupTransform('base_link', 'rotated_frame', rospy.Time(0))
+            rotation_matrix = R.from_quat(rot).as_matrix()
+            translation = np.array(trans)
+
+            T_map_to_base = np.eye(4)
+            T_map_to_base[:3, :3] = rotation_matrix
+            T_map_to_base[:3, 3] = translation
+
+            # self.current_pose = np.linalg.inv(T_map_to_base)
+            self.current_pose = T_map_to_base # 实际上是base to map
+
+           except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+               continue
 
     # def detect_wall_angle_by_ransac(self, points):
     #     model = RANSACRegressor()
@@ -73,7 +98,7 @@ class PointCloudProcessor:
     # def correct_pointcloud_rotation(self, angle_x, points):
     #     """
     #     对 points 进行角度校正，使墙面方向恢复平行于 x/y 轴
-    #     """
+    #     """2 23.54915510515845
 
     #     # rospy.loginfo("Estimated wall angle (radians): %.4f, degrees: %.2f" % (angle, np.rad2deg(angle)))
 
@@ -101,9 +126,18 @@ class PointCloudProcessor:
 
     def pointcloud_callback(self, msg):
         """ Process point cloud data """
+        self.update_pose_from_tf()
+
         if self.current_pose is None:
             rospy.logwarn("Waiting for pose information...")
             return
+        
+        # During the bridge crossing
+        if self.current_pose[1, 3] <= 9.5 and self.current_pose[1, 3] >= 4.5:
+            self.marker_pub.publish(self.latest_bbox_markers)
+            rospy.loginfo("Crossing bridge, stop detection ...")
+            return
+        
 
         # Read point cloud data
         point_list = [list(point[:3]) for point in pc2.read_points(msg, skip_nans=True)]
@@ -128,6 +162,14 @@ class PointCloudProcessor:
             or np.min(transformed_points[:, 1]) < self.ref_y[0]
         ):
             rospy.logwarn("Detected abnormal point cloud frame due to rotation, skipped saving")
+            
+            if np.min(transformed_points[:, 0]) < self.ref_x[0]:
+                rospy.logwarn(f"1 {np.min(transformed_points[:, 0])}")
+            if np.max(transformed_points[:, 0]) > self.ref_x[1]:
+                rospy.logwarn(f"2 {np.max(transformed_points[:, 0])}")
+            if np.min(transformed_points[:, 1]) < self.ref_y[0]:
+                rospy.logwarn(f"3 {np.min(transformed_points[:, 1])}")
+            self.marker_pub.publish(self.latest_bbox_markers)
             return
             # rospy.logwarn("Detected abnormal point cloud frame due to rotation")
             # sample_mask = (transformed_points[:, 0] >= self.ref_x[0]) & (transformed_points[:, 0] < self.ref_x[0]+1) & (transformed_points[:, 1] >= self.ref_y[0]) & (transformed_points[:, 1] < self.ref_y[0]+1)
@@ -221,10 +263,9 @@ class PointCloudProcessor:
             extent = aabb.get_extent()
 
             # Classify objects based on y-axis position
-            if center[1] <= 9 and center[1] >= 1.5:
+            if center[1] <= 9 and center[1] >= 4.5:
                 obj_type = "bridge"
-            # elif extent[0] * extent[1] >= 0.6 * 0.2 and extent[0] * extent[1] * extent[2] <= 0.81 * 0.81 * 0.81:
-            elif (extent[0] * extent[2] >= 0.65 * 0.15 or extent[1] * extent[2] >= 0.65 * 0.15) and (extent[0] >= 0.15 or extent[1] >= 0.15) and (extent[0] * extent[1] * extent[2] <= 0.81 * 0.81 * 0.81):
+            elif extent[0] * extent[1] >= 0.6 * 0.1 and extent[0] * extent[1] * extent[2] <= 0.81 * 0.81 * 0.81 and extent[2] >= 0.6:
                 obj_type = "box"
             else:
                 obj_type = "unknown"
@@ -389,6 +430,7 @@ class PointCloudProcessor:
             marker_array.markers.append(marker)
 
         self.marker_pub.publish(marker_array)
+        self.latest_bbox_markers = marker_array
 
     def run(self):
         """ Run ROS listener """
