@@ -17,7 +17,9 @@
 
   <node pkg="me5413_perception" type="visualize_fusion.py" name="visualize_fusion_node" output="screen" respawn="true" />
 
+  <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="world_broadcast" args="0 0 0 0 0 -0.7071 0.7071 map rotated_frame" /> -->
+  
   <!-- <node pkg="me5413_perception" type="fallback_navigator.py" name="fallback_navigator" output="screen" respawn="true" /> -->
 
-  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find me5413_perception)/rviz/me5413_perception.rviz" output="log" respawn="true"/>
+  <!-- <node type="rviz" name="rviz" pkg="rviz" args="-d $(find me5413_perception)/rviz/me5413_perception.rviz" output="log" respawn="true"/> -->
 </launch>
