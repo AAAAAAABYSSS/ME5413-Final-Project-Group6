@@ -6,7 +6,7 @@
     <max_wheel_speed>30</max_wheel_speed> 
   </plugin> -->
 
-  <node pkg="me5413_perception" type="fusion_node.py" name="fusion_node" output="screen" required="true" />
+  <!-- <node pkg="me5413_perception" type="fusion_node.py" name="fusion_node" output="screen" required="true" /> -->
 
   <node pkg="me5413_perception" type="clu_pcd_v0.5.py" name="clu_pcd_node" output="screen" required="true" />
 
@@ -16,7 +16,7 @@
 
   <node pkg="me5413_perception" type="pub_nav_goal_v0.1.py" name="nav_goal_node" output="screen" required="true" />
 
-  <node pkg="me5413_perception" type="yolo_detect.py" name="yolo_detect_node" output="screen" respawn="true" />
+  <!-- <node pkg="me5413_perception" type="yolo_detect.py" name="yolo_detect_node" output="screen" respawn="true" /> -->
 
   <!-- <node pkg="me5413_perception" type="visualize_fusion.py" name="visualize_fusion_node" output="screen" respawn="true" /> -->
 
