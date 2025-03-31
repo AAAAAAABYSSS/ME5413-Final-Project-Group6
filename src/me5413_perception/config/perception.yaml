@@ -9,6 +9,7 @@ furthest_box_navigator:
   overlap_threshold: 0.6
   bridge_length: 3.0
   yaw_bin_size: 20
+  box_big_size: 1.2
 
 pseudo_status:
   min_dist: 4.5
