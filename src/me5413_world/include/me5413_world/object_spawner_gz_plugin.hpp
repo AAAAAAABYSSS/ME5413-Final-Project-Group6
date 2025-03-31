@@ -54,6 +54,7 @@ class ObjectSpawner : public WorldPlugin
   ros::Publisher pub_rviz_markers_;
 
   visualization_msgs::MarkerArray box_markers_msg_;
+  visualization_msgs::MarkerArray bridge_markers_msg_;
 
   bool bridge_open_called_;
   double bridge_position_;
