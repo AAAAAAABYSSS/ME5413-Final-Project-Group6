@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Start roscore
-gnome-terminal --tab -- bash -c "roscore; exec bash"
+# gnome-terminal --tab -- bash -c "roscore; exec bash"
 sleep 5  # Wait for roscore to initialize
 
 # Build workspace
@@ -32,8 +32,9 @@ case $choice in
         ;;
     2)
         echo "Launching navigation mode..."
-        gnome-terminal --tab -- bash -c "source devel/setup.bash; roslaunch me5413_perception me5413_perception.launch; exec bash"
-        gnome-terminal --tab -- bash -c "source devel/setup.bash; roslaunch jackal_navigation sub_location.launch; exec bash"
+        # gnome-terminal --tab -- bash -c "source devel/setup.bash; roslaunch me5413_perception me5413_perception.launch; exec bash"
+        # gnome-terminal --tab -- bash -c "source devel/setup.bash; roslaunch jackal_navigation sub_location.launch; exec bash"
+        gnome-terminal --tab -- bash -c "source devel/setup.bash; roslaunch me5413_world navigation.launch; exec bash"
         ;;
     3)
         echo "Launching perception mode..."

@@ -17,7 +17,7 @@ class ImuBiasFilter:
         self.subscriber = rospy.Subscriber('/imu/data', Imu, self.filter_imu)
         
         # Publisher to send filtered IMU bias
-        self.publisher = rospy.Publisher('/imu/data/bias_filtered', Imu, queue_size=10)
+        self.publisher = rospy.Publisher('/imu/data/bias_filtered', Imu, queue_size=100)
         
         # Lists to store IMU bias samples
         self.bias_orientation_x = []
@@ -51,7 +51,7 @@ class ImuBiasFilter:
         self.processed_imu = None
 
         # Loop rate
-        self.rate = rospy.Rate(10)  # 10 Hz
+        self.rate = rospy.Rate(50)  # 10 Hz
     
     
     def calculate_mean_bias(self, msg):
