@@ -693,6 +693,43 @@ Visualization Manager:
           Value: true
       Enabled: true
       Name: Evaluation
+    - Class: rviz/Image
+      Enabled: true
+      Image Topic: /front/image_yolo_detect_result
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: Image
+      Normalize Range: true
+      Queue Size: 2
+      Transport Hint: raw
+      Unreliable: false
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /bbox_markers_baselink
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /perception/marker/arrow_marker_baselink
+      Name: Marker
+      Namespaces:
+        goal_arrow: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /perception/marker/bbox_markers_visualized
+      Name: MarkerArray
+      Namespaces:
+        visualized: true
+      Queue Size: 100
+      Value: true
+
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48

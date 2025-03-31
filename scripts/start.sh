@@ -40,8 +40,8 @@ case $choice in
         ;;
     2)
         echo "Launching navigation mode..."
-        gnome-terminal --tab -- bash -c "source devel/setup.bash; roslaunch me5413_perception me5413_perception.launch; exec bash"
-        gnome-terminal --tab -- bash -c "source devel/setup.bash; roslaunch jackal_navigation sub_location.launch; exec bash"
+        # gnome-terminal --tab -- bash -c "source devel/setup.bash; roslaunch me5413_perception me5413_perception.launch; exec bash"
+        gnome-terminal --tab -- bash -c "source devel/setup.bash; roslaunch me5413_navigation navigation.launch; exec bash"
         ;;
     3)
         echo "Launching perception mode..."
