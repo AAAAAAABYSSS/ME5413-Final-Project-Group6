@@ -23,17 +23,33 @@ class PointCloudProcessor:
         self.current_pose = None
         self.all_detections = []
         self.next_unique_id = 0
-        self.ref_x = [1.5, 23.5]
-        self.ref_y = [-1.5, 23.5]
         self.latest_bbox_markers = None
+        self.overall_range = rospy.get_param("~overall_range", [-5, -25])
+        self.eligible_x_range = rospy.get_param("~eligible_x_range", [-1.5, 23.5])
+        self.eligible_y_range = rospy.get_param("~eligible_y_range", [-23.5, -1.5])
+        self.eligible_offset = rospy.get_param("~eligible_offset", 0.1)
+        self.roi_x = rospy.get_param("~roi_x", [-0.5, 19.5])
+        self.roi_y = rospy.get_param("~roi_y", [-22.5, -1.7])
+        self.roi_z = rospy.get_param("~roi_z", [-0.3, 99])
+        self.box_x_range = rospy.get_param("~box_x_range", [9.75, 19.5])
+        self.bridge_x_range = rospy.get_param("~bridge_x_range", [1.5, 9.75])
+        self.goal_box_x_range = rospy.get_param("~goal_box_x_range", [-0.5, 1.5])
+        self.eps = rospy.get_param("~eps", [0.25, 0.45, 0.9])
+        self.min_points = rospy.get_param("~min_points", [30, 30, 20])
+        self.box_criteria_xy = rospy.get_param("~box_criteria_xy", [0.05, 0.81])
+        self.box_criteria_xyz = rospy.get_param("~box_criteria_xyz", 0.531441)
+        self.box_criteria_z = rospy.get_param("~box_criteria_z", 0.6)
+        self.merge_volume_threshold = rospy.get_param("~merge_volume_threshold", 0.05)
+        self.max_iterations = rospy.get_param("~max_iterations", 5)
+        self.center_dist_threshold = rospy.get_param("~center_dist_threshold", 0.5)
         
         # Set save directory
-        self.save_dir = "./pcd_map/"
-        if not os.path.exists(self.save_dir):
-            os.makedirs(self.save_dir)
+        self.save_dir = "/home/yuku/1workspace/NUS/ME5413/ME5413-Final-Project-Group6/pcd/"
+        # if not os.path.exists(self.save_dir):
+        #     os.makedirs(self.save_dir)
 
         # JSON file path (overwrites each time)
-        self.json_file = os.path.join(self.save_dir, "merged_bboxes.json")
+        # self.json_file = os.path.join(self.save_dir, "merged_bboxes.json")
 
         # Whether to save foreground point cloud
         self.foreground_save = False
@@ -43,7 +59,6 @@ class PointCloudProcessor:
         # rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
 
         self.marker_pub = rospy.Publisher("/perception/marker/bbox_markers", MarkerArray, queue_size=1)
-        # self.marker_pub = rospy.Publisher("bbox_markers", MarkerArray, queue_size=1)
         
         # Add TF listener
         self.tf_listener = tf.TransformListener()
@@ -66,63 +81,20 @@ class PointCloudProcessor:
     #     self.current_pose[:3, 3] = translation
 
     def update_pose_from_tf(self):
-        """Get transform from base_link to map and update current_pose"""
-        while not rospy.is_shutdown():
-           try:
-            # (trans,rot) = self.tf_listener.lookupTransform('map', 'base_link', rospy.Time(0))
-            # (trans,rot) = self.tf_listener.lookupTransform('base_link', 'map', rospy.Time(0))
-            (trans,rot) = self.tf_listener.lookupTransform('base_link', 'rotated_frame', rospy.Time(0))
+        """ Get transform from base_link to map and update current_pose """
+        try:
+            # (trans, rot) = self.tf_listener.lookupTransform('map', 'base_link', rospy.Time(0))
+            (trans, rot) = self.tf_listener.lookupTransform('map', 'velodyne', rospy.Time(0))
             rotation_matrix = R.from_quat(rot).as_matrix()
             translation = np.array(trans)
 
-            T_map_to_base = np.eye(4)
-            T_map_to_base[:3, :3] = rotation_matrix
-            T_map_to_base[:3, 3] = translation
+            T_base_to_map = np.eye(4)
+            T_base_to_map[:3, :3] = rotation_matrix
+            T_base_to_map[:3, 3] = translation
 
-            # self.current_pose = np.linalg.inv(T_map_to_base)
-            self.current_pose = T_map_to_base # 实际上是base to map
-
-           except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-               continue
-
-    # def detect_wall_angle_by_ransac(self, points):
-    #     model = RANSACRegressor()
-    #     x = points[:, 0].reshape(-1, 1)
-    #     y = points[:, 1]
-    #     model.fit(x, y)
-
-    #     a = model.estimator_.coef_[0]
-    #     angle = np.abs(np.arctan(a))
-    #     return angle
-    
-    # def correct_pointcloud_rotation(self, angle_x, points):
-    #     """
-    #     对 points 进行角度校正，使墙面方向恢复平行于 x/y 轴
-    #     """2 23.54915510515845
-
-    #     # rospy.loginfo("Estimated wall angle (radians): %.4f, degrees: %.2f" % (angle, np.rad2deg(angle)))
-
-    #     if angle_x > 0:
-    #         angle_error = np.pi / 2 - angle_x
-    #     else:
-    #         angle_error = -np.pi / 2 - angle_x
-
-    #     rospy.loginfo("Applying correction rotation of %.4f rad (%.2f deg)" % (-angle_error, -np.rad2deg(angle_error)))
-
-    #     # 构造反向旋转矩阵（绕Z轴）
-    #     cos_theta = np.cos(-angle_error)
-    #     sin_theta = np.sin(-angle_error)
-    #     rotation_matrix = np.array([
-    #         [cos_theta, -sin_theta, 0],
-    #         [sin_theta,  cos_theta, 0],
-    #         [0,          0,         1]
-    #     ])
-
-    #     # 应用修正
-    #     transformed_points_corrected = (rotation_matrix @ points.T).T
-
-    #     return transformed_points_corrected
-
+            self.current_pose = T_base_to_map  # Base to map transform
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            rospy.logwarn("TF lookup failed")
 
     def pointcloud_callback(self, msg):
         """ Process point cloud data """
@@ -133,16 +105,15 @@ class PointCloudProcessor:
             return
         
         # During the bridge crossing
-        if self.current_pose[1, 3] <= 9.5 and self.current_pose[1, 3] >= 4.5:
+        if self.current_pose[0, 3] <= self.bridge_x_range[1] and self.current_pose[0, 3] >= self.bridge_x_range[0]:
             self.marker_pub.publish(self.latest_bbox_markers)
-            rospy.loginfo("Crossing bridge, stop detection ...")
+            rospy.logwarn("Crossing bridge, stop detection ...")
             return
-        
 
         # Read point cloud data
         point_list = [list(point[:3]) for point in pc2.read_points(msg, skip_nans=True)]
         point_cloud = np.array(point_list, dtype=np.float32)
-        rospy.loginfo("Received point cloud with %d points" % len(point_cloud))
+        rospy.logdebug("Received point cloud with %d points" % len(point_cloud))
 
         # Coordinate transformation (base_link -> map)
         num_points = point_cloud.shape[0]
@@ -152,24 +123,39 @@ class PointCloudProcessor:
 
         # Preprocessing: Remove out-of-range points
         transformed_points = transformed_points[
-            (transformed_points[:, 0] <= 25) & (transformed_points[:, 1] >= -5)
+            (transformed_points[:, 0] >= self.overall_range[0]) & (transformed_points[:, 1] >= self.overall_range[1])
         ]
 
         # Detect abnormal point clouds and skip saving
         if (
-            np.min(transformed_points[:, 0]) < self.ref_x[0]
-            or np.max(transformed_points[:, 0]) > self.ref_x[1]
-            or np.min(transformed_points[:, 1]) < self.ref_y[0]
+            np.min(transformed_points[:, 0]) < (self.eligible_x_range[0] - self.eligible_offset)
+            or np.max(transformed_points[:, 0]) > (self.eligible_x_range[1] + self.eligible_offset)
+            or np.min(transformed_points[:, 1]) < (self.eligible_y_range[0] - self.eligible_offset)
+            or np.max(transformed_points[:, 1]) > (self.eligible_y_range[1] + self.eligible_offset)
         ):
-            rospy.logwarn("Detected abnormal point cloud frame due to rotation, skipped saving")
             
-            if np.min(transformed_points[:, 0]) < self.ref_x[0]:
-                rospy.logwarn(f"1 {np.min(transformed_points[:, 0])}")
-            if np.max(transformed_points[:, 0]) > self.ref_x[1]:
-                rospy.logwarn(f"2 {np.max(transformed_points[:, 0])}")
-            if np.min(transformed_points[:, 1]) < self.ref_y[0]:
-                rospy.logwarn(f"3 {np.min(transformed_points[:, 1])}")
+            # if np.min(transformed_points[:, 0]) < self.eligible_x_range[0]:
+            #     rospy.logwarn(f"1 {np.min(transformed_points[:, 0]) - self.eligible_x_range[0]}")
+            # if np.max(transformed_points[:, 0]) > self.eligible_x_range[1]:
+            #     rospy.logwarn(f"2 {np.max(transformed_points[:, 0]) - self.eligible_x_range[1]}")
+            # if np.min(transformed_points[:, 1]) < self.eligible_y_range[0]:
+            #     rospy.logwarn(f"3 {np.min(transformed_points[:, 1]) - self.eligible_y_range[0]}")
+            # if np.max(transformed_points[:, 1]) > self.eligible_y_range[1]:
+            #     rospy.logwarn(f"4 {np.min(transformed_points[:, 1]) - self.eligible_y_range[1]}")
+
+            # Perform clustering
+            fg_pcd = o3d.geometry.PointCloud()
+            fg_pcd.points = o3d.utility.Vector3dVector(transformed_points)
+
+            if self.foreground_save:
+                # Generate PCD file
+                timestamp = msg.header.stamp.to_sec()
+                spcd_filename = os.path.join(self.save_dir, f"foreground%.6f_error.pcd" % timestamp)
+                o3d.io.write_point_cloud(spcd_filename, fg_pcd)
+
             self.marker_pub.publish(self.latest_bbox_markers)
+            rospy.logwarn("Detected abnormal point cloud frame due to rotation, skipped saving")
+
             return
             # rospy.logwarn("Detected abnormal point cloud frame due to rotation")
             # sample_mask = (transformed_points[:, 0] >= self.ref_x[0]) & (transformed_points[:, 0] < self.ref_x[0]+1) & (transformed_points[:, 1] >= self.ref_y[0]) & (transformed_points[:, 1] < self.ref_y[0]+1)
@@ -187,11 +173,12 @@ class PointCloudProcessor:
 
         # Segment foreground point cloud
         foreground_points = transformed_points[
-            (transformed_points[:, 2] > 2.35)
-            & (transformed_points[:, 0] > 1.7)
-            & (transformed_points[:, 0] < 22.5)
-            & (transformed_points[:, 1] < 19.5)
-            & (transformed_points[:, 1] > -0.5)
+            (transformed_points[:, 0] > self.roi_x[0])
+            & (transformed_points[:, 0] < self.roi_x[1])
+            & (transformed_points[:, 1] > self.roi_y[0])
+            & (transformed_points[:, 1] < self.roi_y[1])
+            & (transformed_points[:, 2] > self.roi_z[0])
+            & (transformed_points[:, 2] < self.roi_z[1])
         ]
 
         if len(foreground_points) == 0:
@@ -210,18 +197,18 @@ class PointCloudProcessor:
 
         # Define segments based on y-axis
         segments = [
-            {"y_range": (9.75, 19.5), "eps": 0.25, "min_points": 30},
-            {"y_range": (1.5, 9.75), "eps": 0.45, "min_points": 30},
-            {"y_range": (-0.5, 1.5), "eps": 0.9, "min_points": 20},
+            {"x_range": self.box_x_range, "eps": self.eps[0], "min_points": self.min_points[0]},
+            {"x_range": self.bridge_x_range, "eps": self.eps[1], "min_points": self.min_points[1]},
+            {"x_range": self.goal_box_x_range, "eps": self.eps[2], "min_points": self.min_points[2]},
         ]
 
         for segment in segments:
-            y_min, y_max = segment["y_range"]
+            x_min, x_max = segment["x_range"][0], segment["x_range"][1]
             eps = segment["eps"]
             min_points = segment["min_points"]
 
-            # Filter points by y-value
-            mask = (foreground_points[:, 1] >= y_min) & (foreground_points[:, 1] < y_max)
+            # Filter points by x-value
+            mask = (foreground_points[:, 0] >= x_min) & (foreground_points[:, 0] < x_max)
             segment_points = foreground_points[mask]
 
             if len(segment_points) == 0:
@@ -241,6 +228,13 @@ class PointCloudProcessor:
             # Update label_offset to avoid label duplication
             if sub_labels.max() != -1:
                 label_offset += sub_labels.max() + 1
+
+
+            if self.foreground_save:
+                # Generate PCD file
+                timestamp = msg.header.stamp.to_sec()
+                spcd_filename = os.path.join(self.save_dir, f"foreground%.6f_{x_min}.pcd" % timestamp)
+                o3d.io.write_point_cloud(spcd_filename, sub_pcd)
 
         # Update the labels variable with all_labels
         labels = all_labels
@@ -263,9 +257,10 @@ class PointCloudProcessor:
             extent = aabb.get_extent()
 
             # Classify objects based on y-axis position
-            if center[1] <= 9 and center[1] >= 4.5:
+            if center[0] >= self.bridge_x_range[0] and center[0] <= self.bridge_x_range[1]:
                 obj_type = "bridge"
-            elif extent[0] * extent[1] >= 0.6 * 0.1 and extent[0] * extent[1] * extent[2] <= 0.81 * 0.81 * 0.81 and extent[2] >= 0.6:
+            # elif extent[0] * extent[1] >= 0.6 * 0.1 and extent[0] * extent[1] * extent[2] <= 0.81 * 0.81 * 0.81 and extent[2] >= 0.6:
+            elif ((extent[0] >= self.box_criteria_xy[0] and extent[0] <= self.box_criteria_xy[1]) or (extent[1] >= self.box_criteria_xy[0] and extent[1] <= self.box_criteria_xy[1])) and extent[0] * extent[1] * extent[2] <= self.box_criteria_xyz and extent[2] >= self.box_criteria_z:
                 obj_type = "box"
             else:
                 obj_type = "unknown"
@@ -293,8 +288,11 @@ class PointCloudProcessor:
 
         rospy.loginfo(f"Current number of objects in all_detections: {len(self.all_detections)}")
 
-    def merge_bboxes(self, bboxes, threshold=0.05, max_iterations=5):
+    def merge_bboxes(self, bboxes):
         """ Iteratively merge bounding boxes with high IoU """
+        threshold = self.merge_volume_threshold
+        max_iterations = self.max_iterations
+
         # Ensure the structure of bboxes is correct
         bboxes = [b for b in bboxes if isinstance(b, dict) and "type" in b and b["type"] in ["box", "bridge"]]
 
@@ -314,15 +312,17 @@ class PointCloudProcessor:
                     if base_bbox["type"] == bbox["type"]:
                         if bbox["type"] == "box":
                             center_dist = np.linalg.norm(np.array(base_bbox["center"]) - np.array(bbox["center"]))
-                            if self.calculate_iou(base_bbox, bbox) > threshold and center_dist <= 0.5:
+                            if self.calculate_iou(base_bbox, bbox) > threshold and center_dist <= self.center_dist_threshold:
                                 to_merge.append(bbox)
                                 merge_occurred = True
                             else:
                                 new_remaining.append(bbox)
                         elif bbox["type"] == "bridge":
                             # Directly merge
-                            to_merge.append(bbox)
-                            merge_occurred = True
+                            center_dist = np.linalg.norm(np.array(base_bbox["center"]) - np.array(bbox["center"]))
+                            if center_dist <= (self.center_dist_threshold + 0.5):   # give more offset
+                                to_merge.append(bbox)
+                                merge_occurred = True
                     else:
                         new_remaining.append(bbox)
 
@@ -349,6 +349,9 @@ class PointCloudProcessor:
         inter_max = np.minimum(box1['max_bound'], box2['max_bound'])
         inter_dim = np.maximum(0, inter_max - inter_min)
         inter_volume = np.prod(inter_dim)
+        
+        if inter_volume == np.prod(inter_min):
+            return 1 + self.merge_volume_threshold
 
         # Compute union
         vol1 = np.prod(np.array(box1['max_bound']) - np.array(box1['min_bound']))
