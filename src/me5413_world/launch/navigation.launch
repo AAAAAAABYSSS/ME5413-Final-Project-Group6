@@ -37,13 +37,15 @@
   <!-- RViz -->
   <node type="rviz" name="rviz" pkg="rviz" args="-d $(find me5413_world)/rviz/navigation.rviz" output="log" respawn="true"/>
 
+
   <!-- 自动导航+旋转补全节点 -->
-  <node pkg="me5413_world" type="jackal_auto_nav.py" name="jackal_auto_rot_nav" output="screen">
+  <!-- <node pkg="me5413_world" type="jackal_auto_nav.py" name="jackal_auto_rot_nav" output="screen">
     <param name="pause_duration" value="1.0" />
-  </node>
+  </node> -->
 
   <!-- 初始化 AMCL 的初始位姿 -->
-  <node pkg="rostopic" type="rostopic" name="amcl_init_pose"
-        args='pub -1 /initialpose geometry_msgs/PoseWithCovarianceStamped -- "{ header: {frame_id: \"map\"}, pose: { pose: { position: {x: 0.0, y: 0.0, z: 0.0}, orientation: {z: 0.0, w: 1.0} } } }"' />
+  <!-- <node pkg="rostopic" type="rostopic" name="amcl_init_pose"
+        args='pub -1 /initialpose geometry_msgs/PoseWithCovarianceStamped -- "{ header: {frame_id: \"map\"}, pose: { pose: { position: {x: 0.0, y: 0.0, z: 0.0}, orientation: {z: 0.0, w: 1.0} } } }"' /> -->
+
 
 </launch>
