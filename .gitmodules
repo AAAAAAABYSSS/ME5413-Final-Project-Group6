@@ -6,3 +6,6 @@
 [submodule "src/me5413_thirdparty/ndt_omp"]
 	path = src/me5413_thirdparty/ndt_omp
 	url = https://github.com/AAAAAAABYSSS/ndt_omp.git
+[submodule "src/me5413_thirdparty/fast_gicp"]
+	path = src/me5413_thirdparty/fast_gicp
+	url = https://github.com/AAAAAAABYSSS/fast_gicp.git
