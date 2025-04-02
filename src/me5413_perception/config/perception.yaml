@@ -29,7 +29,27 @@ fallback_navigator:
   y_range: [11.0, 19.0]          # Exploration area Y range
   wait_time: 0.5                 # Wait time after arrival (seconds)
 
-box_detector:
+# box_detector:
+#   overall_range: [-5, -25]
+#   eligible_x_range: [-1.5, 23.5]
+#   eligible_y_range: [-23.5, -1.5]
+#   eligible_offset: 0.1
+#   roi_x: [-0.5, 19.5]
+#   roi_y: [-22.5, -1.7]
+#   roi_z: [0.05, 99] # [-0.3, 99]
+#   box_x_range: [9.75, 19.5]
+#   bridge_x_range: [4.5, 9.75]
+#   goal_box_x_range: [-0.5, 4.5]
+#   eps: [0.25, 0.45, 0.9]
+#   min_points: [30, 30, 20]
+#   box_criteria_xy: [0.05, 0.81] # extent of x or y
+#   box_criteria_xyz: 0.531441    # volume = 0.81 * 0.81 * 0.81
+#   box_criteria_z: 0.6           # extent of z
+#   merge_volume_threshold: 0.05
+#   max_iterations: 5
+#   center_dist_threshold: 0.5
+
+target_detector:
   overall_range: [-5, -25]
   eligible_x_range: [-1.5, 23.5]
   eligible_y_range: [-23.5, -1.5]
@@ -42,14 +62,15 @@ box_detector:
   goal_box_x_range: [-0.5, 4.5]
   eps: [0.25, 0.45, 0.9]
   min_points: [30, 30, 20]
-  box_criteria_xy: [0.05, 0.81] # extent of x or y
+  box_criteria_xy: [0.05, 0.85] # extent of x or y
   box_criteria_xyz: 0.531441    # volume = 0.81 * 0.81 * 0.81
-  box_criteria_z: 0.6           # extent of z
+  qualified_extent: 0.4 # 0.6   # extent qualification
+  qualified_center_z: [0.25, 0.55]   # center z qualification
+
+pub_target:
   merge_volume_threshold: 0.05
   max_iterations: 5
   center_dist_threshold: 0.5
-
-
-
-
-  
+  max_extent: 0.81
+  qualified_extent: 0.65
+  delete_radius: 1.0 # √((0.4*0.4)*2)

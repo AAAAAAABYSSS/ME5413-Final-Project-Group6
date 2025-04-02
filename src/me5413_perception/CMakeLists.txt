@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package()
 
 catkin_install_python(PROGRAMS
-  # scripts/clu_pcd_v0.5.py
+  scripts/clu_pcd_v0.5.py
   scripts/target_detect.py
   scripts/pub_detect.py
   scripts/pseudo_status.py
