@@ -1,0 +1,25 @@
+<launch>
+  <rosparam file="$(find me5413_perception)/config/perception.yaml" command="load" />
+
+  <node pkg="me5413_perception" type="yolo_detect.py" name="yolo_detect_node" output="screen" respawn="true" />
+
+  <node pkg="me5413_perception" type="fusion_node.py" name="fusion_node" output="screen" required="true" />
+
+  <node pkg="me5413_perception" type="fusion_merged_node.py" name="fusion_merged_node" output="screen" required="true" />
+
+  <node pkg="me5413_perception" type="clu_pcd_v0.5.py" name="clu_pcd_node" output="screen" required="true" />
+
+  <node pkg="me5413_perception" type="pseudo_status.py" name="pseudo_status_node" output="screen" required="true" />
+
+  <node pkg="me5413_perception" type="pub_3d_bbox.py" name="bbox_transform_node" output="screen" required="true" />
+
+  <node pkg="me5413_perception" type="pub_nav_goal.py" name="nav_goal_node" output="screen" required="true" />
+
+  <node pkg="me5413_perception" type="visualize_fusion.py" name="visualize_fusion_node" output="screen" respawn="true" />
+
+  <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="world_broadcast" args="0 0 0 0 0 -0.7071 0.7071 map rotated_frame" /> -->
+  
+  <!-- <node pkg="me5413_perception" type="fallback_navigator.py" name="fallback_navigator" output="screen" respawn="true" /> -->
+
+  <!-- <node type="rviz" name="rviz" pkg="rviz" args="-d $(find me5413_perception)/rviz/me5413_perception.rviz" output="log" respawn="true"/> -->
+</launch>

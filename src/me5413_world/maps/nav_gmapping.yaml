@@ -1,0 +1,7 @@
+image: /home/arc/zewen/ME5413_Final_Project/src/me5413_world/maps/nav_gmapping.pgm
+resolution: 0.050000
+origin: [-50.000000, -50.000000, 0.000000]
+negate: 0
+occupied_thresh: 0.65
+free_thresh: 0.196
+
