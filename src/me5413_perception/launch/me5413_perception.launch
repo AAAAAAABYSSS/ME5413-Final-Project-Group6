@@ -7,10 +7,14 @@
 
   <node pkg="me5413_perception" type="fusion_merged_node.py" name="fusion_merged_node" output="screen" required="true" />
 
+<<<<<<< HEAD
   <!-- <node pkg="me5413_perception" type="clu_pcd_v0.5.py" name="box_detector" output="screen" required="true" /> -->
   <node pkg="me5413_perception" type="target_detect.py" name="target_detector" output="screen" required="true" />
   
   <node pkg="me5413_perception" type="pub_target.py" name="pub_target" output="screen" required="true" />
+=======
+  <node pkg="me5413_perception" type="clu_pcd_v0.5.py" name="box_detector" output="screen" required="true" />
+>>>>>>> e3a7754de5d16b5f2434ff328595dbd09baa525a
 
   <node pkg="me5413_perception" type="pseudo_status.py" name="pseudo_status" output="screen" required="true" />
 

@@ -73,4 +73,4 @@ pub_target:
   center_dist_threshold: 0.5
   max_extent: 0.81
   qualified_extent: 0.65
-  delete_radius: 1.0 # √((0.4*0.4)*2)
+  delete_radius: 1.0 # avoid collision distance is 1.2
