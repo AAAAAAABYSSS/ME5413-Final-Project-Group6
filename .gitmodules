@@ -2,10 +2,14 @@
 	path = src/me5413_thirdparty/ira_laser_tools
 	url = https://github.com/AAAAAAABYSSS/ira_laser_tools/
 
-
 [submodule "src/me5413_thirdparty/ndt_omp"]
 	path = src/me5413_thirdparty/ndt_omp
 	url = https://github.com/AAAAAAABYSSS/ndt_omp.git
+
 [submodule "src/me5413_thirdparty/fast_gicp"]
 	path = src/me5413_thirdparty/fast_gicp
 	url = https://github.com/AAAAAAABYSSS/fast_gicp.git
+
+[submodule "src/me5413_thirdparty/ros_motion_planning"]
+	path = src/me5413_thirdparty/ros_motion_planning
+	url = git@github.com:AAAAAAABYSSS/ros_motion_planning.git
