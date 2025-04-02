@@ -10,3 +10,6 @@
 	path = src/me5413_thirdparty/fast_gicp
 	url = https://github.com/AAAAAAABYSSS/fast_gicp.git
 
+[submodule "src/me5413_thirdparty/ros_motion_planning"]
+	path = src/me5413_thirdparty/ros_motion_planning
+	url = git@github.com:AAAAAAABYSSS/ros_motion_planning.git
