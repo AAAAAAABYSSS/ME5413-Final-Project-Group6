@@ -1,7 +1,7 @@
 <launch>
   <rosparam file="$(find me5413_perception)/config/perception.yaml" command="load" />
 
-  <node pkg="me5413_perception" type="yolo_detect.py" name="yolo_detect_node" output="screen" respawn="true" />
+  <node pkg="me5413_perception" type="scripts/detection/yolo_detect.py" name="yolo_detect_node" output="screen" respawn="true" />
 
   <node pkg="me5413_perception" type="fusion_node.py" name="fusion_node" output="screen" required="true" />
 

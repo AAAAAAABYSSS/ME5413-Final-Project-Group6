@@ -19,7 +19,7 @@ catkin_install_python(PROGRAMS
   scripts/pub_3d_bbox.py
   scripts/pub_nav_goal_v0.1.py
   scripts/pub_nav_goal.py
-  scripts/yolo_detect.py
+  scripts/detection/yolo_detect.py
   scripts/fusion_node.py
   scripts/fusion_merged_node.py
   scripts/visualize_fusion.py
