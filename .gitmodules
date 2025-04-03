@@ -1,31 +1,34 @@
-# Combining ira laser
+# [Tool]: Combining ira laser
 [submodule "src/me5413_thirdparty/ira_laser_tools"]
 	path = src/me5413_thirdparty/ira_laser_tools
-	url = https://github.com/AAAAAAABYSSS/ira_laser_tools.git
+	url = git@github.com:AAAAAAABYSSS/ira_laser_tools.git
 
-# NDT localization
+# [Localization]: NDT localization
 [submodule "src/me5413_thirdparty/ndt_omp"]
 	path = src/me5413_thirdparty/ndt_omp
-	url = https://github.com/AAAAAAABYSSS/ndt_omp.git
+	url = git@github.com:AAAAAAABYSSS/ndt_omp.git
 
 [submodule "src/me5413_thirdparty/fast_gicp"]
 	path = src/me5413_thirdparty/fast_gicp
-	url = https://github.com/AAAAAAABYSSS/fast_gicp.git
+	url = git@github.com:AAAAAAABYSSS/fast_gicp.git
 
 [submodule "src/me5413_thirdparty/hdl_localization"]
     path = src/me5413_thirdparty/hdl_localization
-    url = https://github.com/AAAAAAABYSSS/hdl_localization.git
+    url = git@github.com:AAAAAAABYSSS/hdl_localization.git
 
 [submodule "src/me5413_thirdparty/hdl_global_localization"]
     path = src/me5413_thirdparty/hdl_global_localization
-    url = https://github.com/AAAAAAABYSSS/hdl_global_localization.git
+    url = git@github.com:AAAAAAABYSSS/hdl_global_localization.git
 
-# Motion planner and controller
+# [Planner & Controller]: Motion planner and controller
 [submodule "src/me5413_thirdparty/ros_motion_planning"]
 	path = src/me5413_thirdparty/ros_motion_planning
 	url = git@github.com:AAAAAAABYSSS/ros_motion_planning.git
 
-
+# [Mapping]: Fast livo2
 [submodule "src/me5413_thirdparty/fast_livo"]
 	path = src/me5413_thirdparty/fast_livo
 	url = git@github.com:AAAAAAABYSSS/FAST-LIVO2.git
+
+
+
