@@ -16,3 +16,6 @@
 [submodule "src/me5413_thirdparty/hdl_localization"]
 	path = src/me5413_thirdparty/hdl_localization
 	url = https://github.com/koide3/hdl_localization.git
+[submodule "src/me5413_thirdparty/hdl_global_localization"]
+	path = src/me5413_thirdparty/hdl_global_localization
+	url = https://github.com/koide3/hdl_global_localization.git
