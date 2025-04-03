@@ -1,0 +1,23 @@
+<ui version="4.0">
+ <class>PlannerSelectorPanel</class>
+ <widget class="QWidget" name="PlannerSelectorPanel">
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QComboBox" name="globalComboBox"/>
+   </item>
+   <item>
+    <widget class="QComboBox" name="localComboBox"/>
+   </item>
+   <item>
+    <widget class="QPushButton" name="applyButton">
+     <property name="text"><string>Apply Planner</string></property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="restartButton">
+     <property name="text"><string>Restart Navigation</string></property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+</ui>
