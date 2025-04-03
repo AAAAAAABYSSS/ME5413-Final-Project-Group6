@@ -13,3 +13,6 @@
 [submodule "src/me5413_thirdparty/ros_motion_planning"]
 	path = src/me5413_thirdparty/ros_motion_planning
 	url = git@github.com:AAAAAAABYSSS/ros_motion_planning.git
+[submodule "src/me5413_thirdparty/hdl_localization"]
+	path = src/me5413_thirdparty/hdl_localization
+	url = https://github.com/koide3/hdl_localization.git
