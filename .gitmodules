@@ -32,3 +32,6 @@
 
 
 
+[submodule "src/me5413_thirdparty/Sophus"]
+	path = src/me5413_thirdparty/Sophus
+	url = git@github.com:AAAAAAABYSSS/Sophus.git
