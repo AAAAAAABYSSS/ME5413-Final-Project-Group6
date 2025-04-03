@@ -12,7 +12,7 @@
   </include>
 
   <!-- Launch Move Base -->
-  <include file="$(find me5413_navigation)/launch/move_base.launch">
+  <include file="$(find me5413_navigation)/launch/include/move_base_new.launch">
     <arg name="global_planner" default="rrt" />
   <!-- local planner name -->
   <arg name="local_planner" default="mpc" />

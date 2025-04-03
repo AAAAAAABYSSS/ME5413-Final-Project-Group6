@@ -13,7 +13,7 @@
 
   <!-- Launch Move Base -->
 
-  <include file="$(find me5413_navigation)/launch/move_base_old.launch" />
+  <include file="$(find me5413_navigation)/launch/include/move_base_old.launch" />
   <!-- <rosparam file="$(find me5413_navigation)/config/base_local_planner_params.yaml" command="load" />
   <rosparam file="$(find me5413_navigation)/config/costmap_common_params.yaml" command="load" /> -->
 
