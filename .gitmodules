@@ -26,3 +26,6 @@
 	url = git@github.com:AAAAAAABYSSS/ros_motion_planning.git
 
 
+[submodule "src/me5413_thirdparty/fast_livo"]
+	path = src/me5413_thirdparty/fast_livo
+	url = git@github.com:AAAAAAABYSSS/FAST-LIVO2.git
