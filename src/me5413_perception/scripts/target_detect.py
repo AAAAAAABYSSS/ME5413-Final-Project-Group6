@@ -71,14 +71,14 @@ class PointCloudClustering:
             tf.ConnectivityException,
             tf.ExtrapolationException,
         ):
-            rospy.logerr("TF lookup failed")
+            rospy.logwarn("TF lookup failed")
 
     def pointcloud_callback(self, msg):
         """Process and detect point cloud data"""
         self.update_pose_from_tf()
 
         if self.current_pose is None:
-            rospy.logerr("Waiting for pose information...")
+            rospy.logwarn("Waiting for pose information...")
             return
 
         # During the bridge crossing
@@ -135,7 +135,7 @@ class PointCloudClustering:
                     f"4 {np.min(transformed_points[:, 1]) - self.eligible_y_range[1]}"
                 )
 
-            rospy.logerr("Abnormal point cloud, skip ...")
+            rospy.logwarn("Abnormal point cloud, skip ...")
             return
 
         # Segment foreground point cloud
