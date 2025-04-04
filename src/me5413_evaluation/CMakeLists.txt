@@ -163,7 +163,7 @@ include_directories(
 #   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
 catkin_install_python(PROGRAMS
-  scripts/evaluate_pcd.py
+  scripts/bbox_evaluation.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
