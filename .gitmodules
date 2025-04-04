@@ -35,3 +35,6 @@
 [submodule "src/me5413_thirdparty/Sophus"]
 	path = src/me5413_thirdparty/Sophus
 	url = git@github.com:AAAAAAABYSSS/Sophus.git
+[submodule "src/me5413_thirdparty/rpg_vikit"]
+	path = src/me5413_thirdparty/rpg_vikit
+	url = git@github.com:xuankuzcr/rpg_vikit.git
