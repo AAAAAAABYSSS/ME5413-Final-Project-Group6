@@ -4,7 +4,7 @@
   <!-- <node name="teleop_twist_keyboard" pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py" output="screen" respawn="true"/> -->
 
   <!-- Run the map server -->
-  <arg name="map_file" default="$(find me5413_world)/maps/nav.yaml"/>
+  <arg name="map_file" default="$(find me5413_world)/maps/nav_carto_3d_cleaned.yaml"/>
   <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
   
   <!-- Launch the AMCL Localizer -->
@@ -12,7 +12,7 @@
   </include>
 
   <!-- global planner name-->
-  <arg name="global_planner" default="theta_star" />
+  <arg name="global_planner" default="dstar" />
   <!-- local planner name -->
   <arg name="local_planner" default="pid" />
 
@@ -28,12 +28,12 @@
     <rosparam file="$(find jackal_navigation)/params/map_nav_params/global_costmap_params.yaml" command="load" />
     
     
-    <rosparam file="$(find jackal_navigation)/params/base_local_planner_params.yaml" command="load" /> 
+    
     <rosparam file="$(find jackal_navigation)/params/move_base_params.yaml" command="load" />
     
-    <!-- Two additional yml modification -->
+    <!-- One additional yml modification -->
     <rosparam file="$(find jackal_navigation)/params/addition_params/move_base.yaml" command="load" />
-    <rosparam file="$(find jackal_navigation)/params/addition_params/global_planner.yaml" command="load" />
+    <!-- <rosparam file="$(find jackal_navigation)/params/addition_params/global_planner.yaml" command="load" /> -->
 
     <!-- global planner plugin -->
     
@@ -61,13 +61,12 @@
     
     
     
-    
     <!-- local planner plugin -->
     <param name="base_local_planner" value="dwa_controller/DWAController" if="$(eval arg('local_planner')=='dwa')" />
     <rosparam file="$(find jackal_navigation)/config/controller/dwa_controller_params.yaml" command="load" if="$(eval arg('local_planner')=='dwa')" />
 
     <param name="base_local_planner" value="pid_controller/PIDController" if="$(eval arg('local_planner')=='pid')" />
-    <rosparam file="$(find jackal_navigation)/config/controller/pid_controller_params.yaml" command="load" if="$(eval arg('local_planner')=='pid')" />
+    <rosparam file="$(find jackal_navigation)/config/controller/pid_controller_params1.yaml" command="load" if="$(eval arg('local_planner')=='pid')" />
 
     <param name="base_local_planner" value="apf_controller/APFController" if="$(eval arg('local_planner')=='apf')" />
     <rosparam file="$(find jackal_navigation)/config/controller/apf_controller_params.yaml" command="load" if="$(eval arg('local_planner')=='apf')" />
@@ -82,11 +81,10 @@
     <rosparam file="$(find jackal_navigation)/config/controller/mpc_controller_params.yaml" command="load" if="$(eval arg('local_planner')=='mpc')" />
 
     <param name="base_local_planner" value="static_controller/StaticController" if="$(eval arg('local_planner')=='static')" />
-
-
     
-    <!-- <param name="base_local_planner" value="base_local_planner/TrajectoryPlannerROS"/> -->
-    
+    <param name="base_local_planner" value="base_local_planner/TrajectoryPlannerROS" if="$(eval arg('local_planner')=='standard')"/>
+    <rosparam file="$(find jackal_navigation)/params/base_local_planner_params.yaml" command="load" if="$(eval arg('local_planner')=='standard')"/> 
+
     <remap from="odom" to="odometry/filtered" />
   </node>
   

@@ -4,7 +4,7 @@ TrajectoryPlannerROS:
   acc_lim_x: 5.0   # X 加速限制
   acc_lim_theta: 20 #20.0  # 角速度加速限制
 
-  max_vel_x: 1 #5  # X 方向最大速度
+  max_vel_x: 10 #5  # X 方向最大速度
   min_vel_x: 0.1 # X 方向最小速速
 
   max_vel_theta: 1.57

@@ -1,22 +1,4 @@
 PathPlanner:
-  # offset of transform from world(x,y) to grid map(x,y)
-  convert_offset: 0.0
-  # error tolerance
-  default_tolerance: 0.0
-  # whether outline the map or not
-  outline_map: true
-  # obstacle inflation factor
-  obstacle_factor: 0.5
-  # whether publish expand zone or not
-  expand_zone: true
-  # whether to store Voronoi map or not
-  voronoi_map: true
-
-  max_curv: 5 # curvature
-  dubin_shot_th: 0.5 # (m)
-
-
-
   hybrid_astar:
     # motion model
     # 2 ---- DUBIN
@@ -55,3 +37,4 @@ PathPlanner:
     # The maximum length of the analytic expansion to be considered valid
     analytic_expansion_max_length: 3.0
     downsample_obstacle_heuristic: true
+    

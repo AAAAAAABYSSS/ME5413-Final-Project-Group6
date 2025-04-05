@@ -11,7 +11,7 @@ MPCController:
   eps_iter: 1e-1
 
   # linear velocity
-  max_v: 0.5
+  max_v: 5
   min_v: 0.0
   max_v_inc: 0.5
 
