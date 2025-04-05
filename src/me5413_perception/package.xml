@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>me5413_perception</name>
+  <version>0.0.1</version>
+  <description>ME5413 Final Project Perception Package</description>
+
+  <maintainer email="y_bai.07@nus.edu.com">Yvelle Bai</maintainer>
+  <maintainer email="ziyue@nus.edu.com">ziyue</maintainer>
+  <license>BSD</license>
+
+ <buildtool_depend>catkin</buildtool_depend>
+  <depend>rospy</depend>
+  <depend>std_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>visualization_msgs</depend>
+  <depend>tf</depend>
+</package>

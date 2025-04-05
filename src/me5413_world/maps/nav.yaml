@@ -1,6 +1,6 @@
 image: nav.pgm
 resolution: 0.050000
-# origin: [0, 0,0.5]
+# origin: [0, 0,0]
 origin: [-9.4, -32.250000,0]
 # origin: [-11.450001, -32.250000, 0.000000]
 negate: 0

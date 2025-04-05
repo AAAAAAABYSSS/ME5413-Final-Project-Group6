@@ -1,0 +1,564 @@
+Panels:
+  - Class: rviz/Displays
+    Help Height: 138
+    Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /Global Options1
+        - /Status1
+        - /TF1/Frames1
+        - /Image1
+        - /MarkerArray1
+        - /MarkerArray1/Namespaces1
+        - /Marker1
+      Splitter Ratio: 0.6107784509658813
+    Tree Height: 835
+  - Class: rviz/Selection
+    Name: Selection
+  - Class: rviz/Tool Properties
+    Expanded:
+      - /2D Pose Estimate1
+      - /2D Nav Goal1
+      - /Publish Point1
+    Name: Tool Properties
+    Splitter Ratio: 0.5886790156364441
+  - Class: rviz/Views
+    Expanded:
+      - /Current View1
+    Name: Views
+    Splitter Ratio: 0.6096654534339905
+  - Class: rviz/Time
+    Name: Time
+    SyncMode: 0
+    SyncSource: PointCloud2
+  - Class: rviz_panel::ME5413ControlPanel
+    Name: ME5413ControlPanel
+Preferences:
+  PromptSaveOnExit: true
+Toolbars:
+  toolButtonStyle: 2
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 0.5
+      Cell Size: 1
+      Class: rviz/Grid
+      Color: 160; 160; 164
+      Enabled: true
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 10
+      Reference Frame: <Fixed Frame>
+      Value: true
+    - Class: rviz/TF
+      Enabled: true
+      Filter (blacklist): ""
+      Filter (whitelist): ""
+      Frame Timeout: 15
+      Frames:
+        All Enabled: false
+        base_link:
+          Value: false
+        chassis_link:
+          Value: false
+        front_camera:
+          Value: false
+        front_camera_beam:
+          Value: false
+        front_camera_mount:
+          Value: false
+        front_camera_optical:
+          Value: false
+        front_fender_link:
+          Value: false
+        front_left_wheel_link:
+          Value: false
+        front_mount:
+          Value: false
+        front_right_wheel_link:
+          Value: false
+        imu_link:
+          Value: false
+        mid_mount:
+          Value: false
+        mid_vlp16_leg1:
+          Value: false
+        mid_vlp16_leg2:
+          Value: false
+        mid_vlp16_leg3:
+          Value: false
+        mid_vlp16_leg4:
+          Value: false
+        mid_vlp16_mount:
+          Value: false
+        mid_vlp16_plate:
+          Value: false
+        navsat_link:
+          Value: false
+        odom:
+          Value: false
+        rear_fender_link:
+          Value: false
+        rear_left_wheel_link:
+          Value: false
+        rear_mount:
+          Value: false
+        rear_right_wheel_link:
+          Value: false
+        tim551:
+          Value: false
+        tim551_mount_link:
+          Value: false
+        velodyne:
+          Value: true
+        velodyne_base_link:
+          Value: false
+      Marker Alpha: 1
+      Marker Scale: 1
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Tree:
+        odom:
+          base_link:
+            chassis_link:
+              front_fender_link:
+                {}
+              front_left_wheel_link:
+                {}
+              front_right_wheel_link:
+                {}
+              imu_link:
+                {}
+              mid_mount:
+                front_mount:
+                  front_camera_mount:
+                    front_camera_beam:
+                      front_camera:
+                        front_camera_optical:
+                          {}
+                  tim551_mount_link:
+                    tim551:
+                      {}
+                mid_vlp16_mount:
+                  mid_vlp16_leg1:
+                    {}
+                  mid_vlp16_leg2:
+                    {}
+                  mid_vlp16_leg3:
+                    {}
+                  mid_vlp16_leg4:
+                    {}
+                  mid_vlp16_plate:
+                    velodyne_base_link:
+                      velodyne:
+                        {}
+                rear_mount:
+                  {}
+              navsat_link:
+                {}
+              rear_fender_link:
+                {}
+              rear_left_wheel_link:
+                {}
+              rear_right_wheel_link:
+                {}
+      Update Interval: 0
+      Value: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        chassis_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        front_camera:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        front_camera_beam:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        front_camera_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        front_camera_optical:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        front_fender_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        front_left_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        front_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        front_right_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        imu_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        mid_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        mid_vlp16_leg1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mid_vlp16_leg2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mid_vlp16_leg3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mid_vlp16_leg4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mid_vlp16_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        mid_vlp16_plate:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        navsat_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rear_fender_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rear_left_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rear_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rear_right_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        tim551:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        tim551_mount_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        velodyne:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        velodyne_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: RobotModel
+      Robot Description: robot_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Class: rviz/InteractiveMarkers
+      Enable Transparency: true
+      Enabled: true
+      Name: InteractiveMarkers
+      Show Axes: false
+      Show Descriptions: true
+      Show Visual Aids: false
+      Update Topic: /twist_marker_server/update
+      Value: true
+    - Class: rviz/Group
+      Displays:
+        - Acceleration properties:
+            Acc. vector alpha: 1
+            Acc. vector color: 255; 0; 0
+            Acc. vector scale: 1
+            Derotate acceleration: true
+            Enable acceleration: false
+          Axes properties:
+            Axes scale: 1
+            Enable axes: true
+          Box properties:
+            Box alpha: 1
+            Box color: 255; 0; 0
+            Enable box: false
+            x_scale: 1
+            y_scale: 1
+            z_scale: 1
+          Class: rviz_imu_plugin/Imu
+          Enabled: true
+          Name: Imu
+          Queue Size: 10
+          Topic: /imu/data
+          Unreliable: false
+          Value: true
+          fixed_frame_orientation: true
+        - Class: rviz/Image
+          Enabled: false
+          Image Topic: /front/image_raw
+          Max Value: 1
+          Median window: 5
+          Min Value: 0
+          Name: Image
+          Normalize Range: true
+          Queue Size: 2
+          Transport Hint: raw
+          Unreliable: false
+          Value: false
+        - Alpha: 1
+          Autocompute Intensity Bounds: true
+          Autocompute Value Bounds:
+            Max Value: 9.574649810791016
+            Min Value: -3.374373197555542
+            Value: true
+          Axis: X
+          Channel Name: intensity
+          Class: rviz/LaserScan
+          Color: 255; 255; 255
+          Color Transformer: AxisColor
+          Decay Time: 0
+          Enabled: true
+          Invert Rainbow: false
+          Max Color: 255; 255; 255
+          Min Color: 0; 0; 0
+          Name: LaserScan
+          Position Transformer: XYZ
+          Queue Size: 10
+          Selectable: true
+          Size (Pixels): 3
+          Size (m): 0.05000000074505806
+          Style: Spheres
+          Topic: /front/scan
+          Unreliable: false
+          Use Fixed Frame: true
+          Use rainbow: true
+          Value: true
+        - Alpha: 1
+          Autocompute Intensity Bounds: true
+          Autocompute Value Bounds:
+            Max Value: 2.334859609603882
+            Min Value: -0.07155820727348328
+            Value: true
+          Axis: Z
+          Channel Name: intensity
+          Class: rviz/PointCloud2
+          Color: 255; 255; 255
+          Color Transformer: AxisColor
+          Decay Time: 0
+          Enabled: true
+          Invert Rainbow: false
+          Max Color: 255; 255; 255
+          Min Color: 0; 0; 0
+          Name: PointCloud2
+          Position Transformer: XYZ
+          Queue Size: 10
+          Selectable: true
+          Size (Pixels): 3
+          Size (m): 0.019999999552965164
+          Style: Points
+          Topic: /mid/points
+          Unreliable: false
+          Use Fixed Frame: true
+          Use rainbow: true
+          Value: true
+      Enabled: true
+      Name: Sensing
+    - Class: rviz/Image
+      Enabled: true
+      Image Topic: /front/image_result
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: Image
+      Normalize Range: true
+      Queue Size: 2
+      Transport Hint: raw
+      Unreliable: false
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /bbox_markers_baselink
+      Name: MarkerArray
+      Namespaces:
+        box: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /arrow_marker_baselink
+      Name: Marker
+      Namespaces:
+        goal_arrow: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /perception/yolo_markers
+      Name: MarkerArray
+      Namespaces:
+        yolo_labels: true
+      Queue Size: 100
+      Value: true
+  Enabled: true
+  Global Options:
+    Background Color: 48; 48; 48
+    Default Light: true
+    Fixed Frame: base_link
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz/Interact
+      Hide Inactive Objects: true
+    - Class: rviz/MoveCamera
+    - Class: rviz/Select
+    - Class: rviz/FocusCamera
+    - Class: rviz/Measure
+    - Class: rviz/SetInitialPose
+      Theta std deviation: 0.2617993950843811
+      Topic: /initialpose
+      X std deviation: 0.5
+      Y std deviation: 0.5
+    - Class: rviz/SetGoal
+      Topic: /move_base_simple/goal
+    - Class: rviz/PublishPoint
+      Single click: true
+      Topic: /clicked_point
+  Value: true
+  Views:
+    Current:
+      Class: rviz/ThirdPersonFollower
+      Distance: 2.5166444778442383
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Field of View: 0.8999999761581421
+      Focal Point:
+        X: -4.788331985473633
+        Y: -3.5918922424316406
+        Z: -1.0073184967041016e-05
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.009999999776482582
+      Pitch: -0.10020393878221512
+      Target Frame: base_link
+      Yaw: 4.611822128295898
+    Saved:
+      - Class: rviz/ThirdPersonFollower
+        Distance: 4
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Field of View: 0.8999999761581421
+        Focal Point:
+          X: 0
+          Y: 0
+          Z: 0
+        Focal Shape Fixed Size: true
+        Focal Shape Size: 0.05000000074505806
+        Invert Z Axis: false
+        Name: ThirdPersonFollower
+        Near Clip Distance: 0.009999999776482582
+        Pitch: 0.6000000238418579
+        Target Frame: base_link
+        Yaw: 3.1500000953674316
+      - Angle: -1.5700000524520874
+        Class: rviz/TopDownOrtho
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Invert Z Axis: false
+        Name: TopDownOrtho
+        Near Clip Distance: 0.009999999776482582
+        Scale: 100
+        Target Frame: base_link
+        X: 0
+        Y: 0
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 1472
+  Hide Left Dock: false
+  Hide Right Dock: false
+  Image:
+    collapsed: false
+  ME5413ControlPanel:
+    collapsed: false
+  QMainWindow State: 000000ff00000000fd0000000400000000000001f7000004b8fc020000000afb0000001200530065006c0065006300740069006f006e00000001e10000009b000000b000fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000b0fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000006e0000043b0000018200fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000a0049006d0061006700650000000238000001b10000002600fffffffb00000024004d004500350034003100330043006f006e00740072006f006c00500061006e0065006c01000004b50000007100000071000000710000000100000279000004b8fc0200000007fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000006e0000036d0000013200fffffffb0000000a0049006d00610067006501000003e70000013f0000002600fffffffb0000000a0049006d006100670065010000022e000002fa0000000000000000fb0000001600730069006d0070006c006500500061006e0065006c00000002700000012c0000000000000000fb0000000c00540065006c0065006f00700000000287000001150000000000000000fb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000097000000060fc0100000002fb0000000800540069006d0065010000000000000970000006b800fffffffb0000000800540069006d00650100000000000004500000000000000000000004e8000004b800000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Selection:
+    collapsed: false
+  Time:
+    collapsed: false
+  Tool Properties:
+    collapsed: false
+  Views:
+    collapsed: false
+  Width: 2416
+  X: 271
+  Y: 329

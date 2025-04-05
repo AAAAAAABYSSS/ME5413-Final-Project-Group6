@@ -1,3 +1,0 @@
-<launch>
-    <node pkg="jackal_navigation" type="go_to_destination.py" name="go_to_destination" output="screen"/>
-</launch>

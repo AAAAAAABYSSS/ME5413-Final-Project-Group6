@@ -57,7 +57,7 @@
     <xacro:property name="tower" value="$(optenv JACKAL_LASER_TOWER 1)" />
     <xacro:property name="prefix" value="$(optenv JACKAL_LASER_PREFIX ${mount})" />
     <xacro:property name="parent" value="$(optenv JACKAL_LASER_PARENT ${mount}_mount)" />
-    <xacro:property name="lidar_model" value="$(optenv JACKAL_LASER_MODEL tim551)" />
+    <xacro:property name="lidar_model" value="$(optenv JACKAL_LASER_MODEL utm30)" />
     <xacro:property name="mount_type" value="$(optenv JACKAL_LASER_MOUNT_TYPE upright)" />
     <!-- SICK LMS1xx -->
     <xacro:if value="${lidar_model == 'lms1xx'}">
@@ -121,7 +121,7 @@
     <xacro:property name="tower" value="$(optenv JACKAL_LASER_SECONDARY_TOWER 1)" />
     <xacro:property name="prefix" value="$(optenv JACKAL_LASER_SECONDARY_PREFIX ${mount})" />
     <xacro:property name="parent" value="$(optenv JACKAL_LASER_SECONDARY_PARENT ${mount}_mount)" />
-    <xacro:property name="lidar_model" value="$(optenv JACKAL_LASER_SECONDARY_MODEL tim551)" />
+    <xacro:property name="lidar_model" value="$(optenv JACKAL_LASER_SECONDARY_MODEL utm30)" />
     <!-- SICK LMS1xx -->
     <xacro:if value="${lidar_model == 'lms1xx'}">
       <!-- Mount Enabled -->
@@ -183,6 +183,7 @@
     <xacro:property name="prefix" value="$(optenv JACKAL_LASER_3D_PREFIX ${mount})" />
     <xacro:property name="parent" value="$(optenv JACKAL_LASER_3D_PARENT ${mount}_mount)" />
     <xacro:property name="lidar_3d_model" value="$(optenv JACKAL_LASER_3D_MODEL vlp16)" />
+    <!-- <xacro:property name="lidar_3d_model" value="$(optenv JACKAL_LASER_3D_MODEL hdl32e)" /> -->
     <!-- Velodyne VLP16 -->
     <xacro:if value="${lidar_3d_model == 'vlp16'}">
       <xacro:vlp16_mount topic="${topic}" tower="${tower}" prefix="${prefix}" parent_link="${parent}" >
@@ -255,7 +256,7 @@
       <!-- Tower Disabled -->
       <xacro:unless value="${tower}">
         <joint name="${prefix}_navsat_joint" type="fixed">
-          <origin xyz="$(optenv JACKAL_NAVSAT_OFFSET 0 0 0)" rpy="$(optenv JACKAL_NsVSAT_RPY 0 0 0)" />
+          <origin xyz="$(optenv JACKAL_NAVSAT_OFFSET 0 0 0)" rpy="$(optenv JACKAL_NAVSAT_RPY 0 0 0)" />
           <parent link="${parent}" />
           <child link="${prefix}_navsat" />
         </joint>

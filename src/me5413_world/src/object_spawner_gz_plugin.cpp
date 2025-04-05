@@ -36,19 +36,34 @@ void ObjectSpawner::Load(physics::WorldPtr _world, sdf::ElementPtr _sdf)
   return;
 };
 
+// void ObjectSpawner::timerCallback(const ros::TimerEvent&)
+// {
+//   // publish rviz markers
+//   this->pub_rviz_markers_.publish(this->box_markers_msg_);
+//   this->pub_rviz_markers_.publish(this->bridge_markers_msg_);
+
+//   return;
+// };
+
 void ObjectSpawner::timerCallback(const ros::TimerEvent&)
 {
-  // publish rviz markers
-  this->pub_rviz_markers_.publish(this->box_markers_msg_);
+  // Merge box and bridge markers
+  visualization_msgs::MarkerArray all_markers_msg = box_markers_msg_;
+  all_markers_msg.markers.insert(
+    all_markers_msg.markers.end(),
+    bridge_markers_msg_.markers.begin(),
+    bridge_markers_msg_.markers.end()
+  );
 
-  return;
-};
+  this->pub_rviz_markers_.publish(all_markers_msg);
+}
 
 
 void ObjectSpawner::spawnRandomBridge()
 {
   msgs::Factory bridge_msg;
   this->bridge_name = "bridge";
+  this->bridge_markers_msg_.markers.clear();
   bridge_msg.set_sdf_filename("model://bridge");
 
   std::srand(std::time(0));
@@ -57,6 +72,33 @@ void ObjectSpawner::spawnRandomBridge()
     ignition::math::Vector3d(bridge_position_, 9.0, 2.6), 
     ignition::math::Quaterniond(1.57079632679, 0, 0)));
   this->pub_factory_->Publish(bridge_msg);
+
+  // Publish rviz marker for this bridge
+  visualization_msgs::Marker bridge_marker;
+  bridge_marker.header.frame_id = "world";
+  bridge_marker.header.stamp = ros::Time();
+  bridge_marker.ns = "gazebo";
+  bridge_marker.id = 99;
+  bridge_marker.type = visualization_msgs::Marker::CUBE;
+  bridge_marker.action = visualization_msgs::Marker::ADD;
+  bridge_marker.frame_locked = true;
+  bridge_marker.lifetime = ros::Duration(0.2);
+  bridge_marker.pose.position.x = bridge_position_;
+  bridge_marker.pose.position.y = 9.0;
+  bridge_marker.pose.position.z = 2.6;
+  bridge_marker.pose.orientation.x = 0.707;
+  bridge_marker.pose.orientation.y = 0.0;
+  bridge_marker.pose.orientation.z = 0.0;
+  bridge_marker.pose.orientation.w = 0.707;
+  bridge_marker.scale.x = 1.6;
+  bridge_marker.scale.y = 4.0;
+  bridge_marker.scale.z = 0.8;
+  bridge_marker.color.a = 0.7;
+  bridge_marker.color.r = 1 * 0.5 + 0.25;
+  bridge_marker.color.g = 1 * 0.5 + 0.25;
+  bridge_marker.color.b = 1 * 0.5 + 0.25;
+  this->bridge_markers_msg_.markers.emplace_back(bridge_marker);
+
   return;
 };
 
@@ -144,31 +186,31 @@ void ObjectSpawner::spawnRandomBoxes()
     this->pub_factory_->Publish(box_msg);
     ROS_DEBUG_STREAM("Generated " << box_name << " at " << point);
     common::Time::MSleep(500);
-    // // Publish rviz marker for this box
-    // visualization_msgs::Marker box_marker;
-    // box_marker.header.frame_id = "world";
-    // box_marker.header.stamp = ros::Time();
-    // box_marker.ns = "gazebo";
-    // box_marker.id = 2*i;
-    // box_marker.type = visualization_msgs::Marker::CUBE;
-    // box_marker.action = visualization_msgs::Marker::ADD;
-    // box_marker.frame_locked = true;
-    // box_marker.lifetime = ros::Duration(0.2);
-    // box_marker.pose.position.x = point.X();
-    // box_marker.pose.position.y = point.Y();
-    // box_marker.pose.position.z = point.Z();
-    // box_marker.pose.orientation.x = 0.0;
-    // box_marker.pose.orientation.y = 0.0;
-    // box_marker.pose.orientation.z = 0.0;
-    // box_marker.pose.orientation.w = 1.0;
-    // box_marker.scale.x = 0.8;
-    // box_marker.scale.y = 0.8;
-    // box_marker.scale.z = 0.8;
-    // box_marker.color.a = 0.7;
-    // box_marker.color.r = static_cast<double>(std::rand()) / RAND_MAX * 0.5 + 0.25;
-    // box_marker.color.g = static_cast<double>(std::rand()) / RAND_MAX * 0.5 + 0.25;
-    // box_marker.color.b = static_cast<double>(std::rand()) / RAND_MAX * 0.5 + 0.25;
-    // this->box_markers_msg_.markers.emplace_back(box_marker);
+    // Publish rviz marker for this box
+    visualization_msgs::Marker box_marker;
+    box_marker.header.frame_id = "world";
+    box_marker.header.stamp = ros::Time();
+    box_marker.ns = "gazebo";
+    box_marker.id = 2*i;
+    box_marker.type = visualization_msgs::Marker::CUBE;
+    box_marker.action = visualization_msgs::Marker::ADD;
+    box_marker.frame_locked = true;
+    box_marker.lifetime = ros::Duration(0.2);
+    box_marker.pose.position.x = point.X();
+    box_marker.pose.position.y = point.Y();
+    box_marker.pose.position.z = point.Z();
+    box_marker.pose.orientation.x = 0.0;
+    box_marker.pose.orientation.y = 0.0;
+    box_marker.pose.orientation.z = 0.0;
+    box_marker.pose.orientation.w = 1.0;
+    box_marker.scale.x = 0.8;
+    box_marker.scale.y = 0.8;
+    box_marker.scale.z = 0.8;
+    box_marker.color.a = 0.7;
+    box_marker.color.r = static_cast<double>(std::rand()) / RAND_MAX * 0.5 + 0.25;
+    box_marker.color.g = static_cast<double>(std::rand()) / RAND_MAX * 0.5 + 0.25;
+    box_marker.color.b = static_cast<double>(std::rand()) / RAND_MAX * 0.5 + 0.25;
+    this->box_markers_msg_.markers.emplace_back(box_marker);
 
     // visualization_msgs::Marker text_marker = box_marker;
     // text_marker.id = 2*i + 1;
@@ -183,7 +225,7 @@ void ObjectSpawner::spawnRandomBoxes()
     // text_markers_msg.markers.emplace_back(text_marker);
   }
 
-  // // merge the two marker arrays
+  // merge the two marker arrays
   // this->box_markers_msg_.markers.insert(this->box_markers_msg_.markers.end(), text_markers_msg.markers.begin(), text_markers_msg.markers.end());
 
   return;
@@ -208,6 +250,9 @@ void ObjectSpawner::deleteObject(const std::string& object_name)
 
 void ObjectSpawner::deleteBridge()
 {
+  this->bridge_markers_msg_.markers.clear();
+  this->pub_rviz_markers_.publish(this->bridge_markers_msg_);
+
   deleteObject(this->bridge_name);
   this->bridge_name = "";
   this->bridge_point = ignition::math::Vector3d();

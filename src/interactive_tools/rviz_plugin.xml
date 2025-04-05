@@ -7,3 +7,12 @@
   </class>
 
 </library>
+
+<library path="lib/libinteractive_tools">
+  <class name="interactive_tools/PlannerSelectorPanel"
+         type="interactive_tools::PlannerSelectorPanel"
+         base_class_type="rviz::Panel">
+    <description>Planner selection and restart panel</description>
+  </class>
+</library>
+
