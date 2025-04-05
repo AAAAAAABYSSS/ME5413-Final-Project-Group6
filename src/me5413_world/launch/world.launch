@@ -18,6 +18,9 @@
     <!-- Load the destination configuration -->
     <rosparam command="load" file="$(find me5413_world)/config/config.yaml" />
 
+    <!-- Launch laser merger -->
+    <include file="$(find ira_laser_tools)/launch/laserscan_multi_merger.launch" />
+
     <!-- IMU filter -->
     <include file="$(find me5413_navigation)/launch/imu_filter.launch" />
 

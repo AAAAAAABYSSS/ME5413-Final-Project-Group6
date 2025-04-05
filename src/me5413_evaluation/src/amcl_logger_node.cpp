@@ -29,7 +29,7 @@ int main(int argc, char** argv)
     std::string pkg_path = ros::package::getPath("me5413_evaluation");
     std::string log_path = pkg_path + "/Log/amcl.txt";
 
-    logfile.open(log_path);
+    logfile.open(log_path, std::ios::out | std::ios::trunc);
     if (!logfile.is_open()) {
         ROS_ERROR("Failed to open log file: %s", log_path.c_str());
         return 1;

@@ -12,13 +12,12 @@
   </include>
 
   <!-- Launch Move Base -->
-
   <include file="$(find me5413_navigation)/launch/include/move_base_old.launch" />
+
+  <include file="$(find me5413_evaluation)/launch/evo_evaluation.launch" />
+
   <!-- <rosparam file="$(find me5413_navigation)/config/base_local_planner_params.yaml" command="load" />
   <rosparam file="$(find me5413_navigation)/config/costmap_common_params.yaml" command="load" /> -->
-
-  <!-- Launch laser merger -->
-  <include file="$(find ira_laser_tools)/launch/laserscan_multi_merger.launch" />
 
   <!-- Launch IMU filter -->
   <!-- <include file="$(find me5413_navigation)/launch/imu_filter.launch" /> -->
