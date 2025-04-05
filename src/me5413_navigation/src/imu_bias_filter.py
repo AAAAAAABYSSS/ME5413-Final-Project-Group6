@@ -11,7 +11,7 @@ class ImuBiasFilter:
         rospy.loginfo("IMU Bias Filter node started")
         
         # Subscriber to receive IMU bias messages
-        self.sub_bias = rospy.Subscriber('/imu/data/bias', Imu, self.calculate_mean_bias)
+        self.sub_bias = rospy.Subscriber('/imu/data/bias', Imu, self.calculate_mean_bias, queue_size=100)
         
         # Subscriber to receive IMU messages
         self.sub_imu = rospy.Subscriber('/imu/data', Imu, self.filter_imu, queue_size=100)
