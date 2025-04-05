@@ -25,6 +25,8 @@ class FurthestBoxNavigator:
         self.fallback_grid_resolution = rospy.get_param("~fallback_grid_resolution", 0.2)
         self.x_range = rospy.get_param("~x_range", [11.0, 19.0])
         self.y_range = rospy.get_param("~y_range", [-22.0, -2.0])
+        self.bridge_pos = rospy.get_param("~bridge_pos", 9.0)
+
 
         self.reach_goal = True
         self.last_goal_position = None
@@ -335,7 +337,7 @@ class FurthestBoxNavigator:
         for marker in msg.markers:
             if marker.ns != "box":
                 continue
-            if marker.pose.position.y <= 9:
+            if marker.pose.position.x <= self.bridge_pos:
                 continue  
             
             box_pos = np.array([

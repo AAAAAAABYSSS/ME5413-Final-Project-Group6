@@ -10,6 +10,7 @@ furthest_box_navigator:
   bridge_length: 3.0
   yaw_bin_size: 20
   box_big_size: 1.2
+  bridge_pos: 9.0
 
 pseudo_status:
   min_dist: 3 #4.5
