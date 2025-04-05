@@ -8,8 +8,13 @@ project(me5413_evaluation)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  rospy
-  visualization_msgs
+  roscpp
+  geometry_msgs
+  gazebo_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  roslib 
 )
 
 ## System dependencies are found with CMake's conventions
@@ -207,3 +212,13 @@ catkin_install_python(PROGRAMS
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+add_executable(ground_truth_logger_node src/ground_truth_logger_node.cpp)
+target_link_libraries(ground_truth_logger_node ${catkin_LIBRARIES})
+
+add_executable(amcl_logger_node src/amcl_logger_node.cpp)
+target_link_libraries(amcl_logger_node ${catkin_LIBRARIES})
+
+add_executable(goal_vs_final_evaluator_node src/goal_vs_final_evaluator_node.cpp)
+target_link_libraries(goal_vs_final_evaluator_node ${catkin_LIBRARIES})
+
