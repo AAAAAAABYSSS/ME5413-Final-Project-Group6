@@ -1,8 +1,16 @@
 #!/bin/bash
 
-# Start roscore
-gnome-terminal --tab -- bash -c "roscore; exec bash"
-sleep 5  # Wait for roscore to initialize
+# Check and install ultralytic
+pip show ultralytics > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+    echo "[INFO] Installing Ultralytics YOLO..."
+    pip install ultralytics
+else
+    echo "[INFO] Ultralytics YOLO is already installed."
+fi
+# # Start roscore
+# gnome-terminal --tab -- bash -c "roscore; exec bash"
+# sleep 5  # Wait for roscore to initialize
 
 # Build workspace
 gnome-terminal --tab -- bash -c "catkin_make -j4; source devel/setup.bash; roslaunch me5413_world world.launch;exec bash"
@@ -20,7 +28,7 @@ echo "=================================="
 
 # Prompt user
 read -p "Enter the number corresponding to the mode: " choice
-
+sleep 2
 case $choice in
     0)
         echo "Launching manual control only..."
@@ -33,7 +41,7 @@ case $choice in
     2)
         echo "Launching navigation mode..."
         gnome-terminal --tab -- bash -c "source devel/setup.bash; roslaunch me5413_perception me5413_perception.launch; exec bash"
-        gnome-terminal --tab -- bash -c "source devel/setup.bash; roslaunch jackal_navigation sub_location.launch; exec bash"
+        gnome-terminal --tab -- bash -c "source devel/setup.bash; source src/me5413_thirdparty/ros_motion_planning/devel/setup.bash; roslaunch me5413_navigation navigation_old.launch ; exec bash"
         ;;
     3)
         echo "Launching perception mode..."

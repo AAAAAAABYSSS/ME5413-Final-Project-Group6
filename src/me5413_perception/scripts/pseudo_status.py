@@ -17,7 +17,7 @@ class PseudoStatus:
         self.goal_received = False  # Whether a goal has been received
 
         # Subscriptions
-        rospy.Subscriber("/nav_goal_marker", Marker, self.goal_callback)
+        rospy.Subscriber("/perception/marker/nav_goal_marker", Marker, self.goal_callback)
         rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
 
         # Publish simulated move_base/status
