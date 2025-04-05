@@ -21,24 +21,22 @@ class FusionNode:
         self.N = rospy.get_param("~num_closest_points", 10)  
         self.merge_distance = rospy.get_param("~merge_distance", 0.4)
 
-        rospy.loginfo(f"[FusionNode] Using {self.N} closest points based on ray direction")
-
         self.latest_pointcloud = None
         self.camera_intrinsics = None
         self.yolo_targets = []
+        self.merged_points_cache = []
+        self.unmatched_points_cache = []
+        self.rate = rospy.Rate(10)
+        self.current_pose = np.eye(4)
         self.tf_listener = tf.TransformListener()
 
         rospy.Subscriber("/front/camera_info", CameraInfo, self.camera_info_callback)
         rospy.Subscriber("/mid/points", PointCloud2, self.pointcloud_callback)
         rospy.Subscriber("/perception/yolo_targets", String, self.yolo_callback)
-        rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
+        # rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
 
         self.target_3d_pub = rospy.Publisher("/perception/yolo_targets_3d", String, queue_size=10)
-
-        self.unmatched_points_cache = []
-        self.merged_points_cache = []
-
-        self.rate = rospy.Rate(10)
+        rospy.loginfo(f"[FusionNode] Using {self.N} closest points based on ray direction")
 
     def camera_info_callback(self, msg):
         self.camera_intrinsics = np.array(msg.K).reshape(3, 3)
@@ -55,16 +53,38 @@ class FusionNode:
         except Exception as e:
             rospy.logerr(f"Error parsing YOLO target JSON: {e}")
             
-    def odom_callback(self, msg):
-        position = msg.pose.pose.position
-        orientation = msg.pose.pose.orientation
+    # def odom_callback(self, msg):
+    #     position = msg.pose.pose.position
+    #     orientation = msg.pose.pose.orientation
 
-        self.T_base_to_map = np.eye(4)
-        self.P_base_to_map = [position.x, position.y, position.z]
-        self.R_base_to_map = R.from_quat([orientation.x, orientation.y, orientation.z, orientation.w]).as_matrix()
-        self.T_base_to_map[:3, 3] = self.P_base_to_map
-        self.T_base_to_map[:3, :3] = self.R_base_to_map
-        self.T_map_to_base = np.linalg.inv(self.T_base_to_map)
+    #     self.T_base_to_map = np.eye(4)
+    #     self.P_base_to_map = [position.x, position.y, position.z]
+    #     self.R_base_to_map = R.from_quat([orientation.x, orientation.y, orientation.z, orientation.w]).as_matrix()
+    #     self.T_base_to_map[:3, 3] = self.P_base_to_map
+    #     self.T_base_to_map[:3, :3] = self.R_base_to_map
+    #     self.T_map_to_base = np.linalg.inv(self.T_base_to_map)
+
+    # def update_pose_from_tf(self):
+    #     """Get transform from map to base and update current_pose"""
+    #     try:
+    #         # Velodyne to map transform
+    #         (trans, rot) = self.tf_listener.lookupTransform(
+    #             "base_link", "map", rospy.Time(0)
+    #         )
+    #         rotation_matrix = R.from_quat(rot).as_matrix()
+    #         translation = np.array(trans)
+
+    #         T_base_to_map = np.eye(4)
+    #         T_base_to_map[:3, :3] = rotation_matrix
+    #         T_base_to_map[:3, 3] = translation
+
+    #         self.current_pose = T_base_to_map
+    #     except (
+    #         tf.LookupException,
+    #         tf.ConnectivityException,
+    #         tf.ExtrapolationException,
+    #     ):
+    #         rospy.logwarn("TF lookup failed")
 
     def transform_point(self, point, transform):
         point_homog = np.dot(transform, np.array([point[0], point[1], point[2], 1.0]))
@@ -122,11 +142,15 @@ class FusionNode:
         while not rospy.is_shutdown():
             if self.latest_pointcloud and self.camera_intrinsics is not None and self.yolo_targets:
                 try:
+                    rospy.loginfo("[FusionNode] Entered process_data loop.")
+
+                    self.tf_listener.waitForTransform("/front_camera_optical", "/velodyne", rospy.Time(0), rospy.Duration(1.0))
                     (trans, rot) = self.tf_listener.lookupTransform("/front_camera_optical", "/velodyne", rospy.Time(0))
                     tf_velo_to_cam = np.dot(transformations.translation_matrix(trans), transformations.quaternion_matrix(rot))
 
-                    (trans_base, rot_base) = self.tf_listener.lookupTransform("/base_link", "/velodyne", rospy.Time(0))
-                    tf_velo_to_base = np.dot(transformations.translation_matrix(trans_base), transformations.quaternion_matrix(rot_base))
+                    self.tf_listener.waitForTransform("/map", "/velodyne", rospy.Time(0), rospy.Duration(1.0))
+                    (trans_map, rot_map) = self.tf_listener.lookupTransform("/map", "/velodyne", rospy.Time(0))
+                    tf_velo_to_map = np.dot(transformations.translation_matrix(trans_map), transformations.quaternion_matrix(rot_map))
 
                     fx = self.camera_intrinsics[0, 0]
                     fy = self.camera_intrinsics[1, 1]
@@ -164,8 +188,8 @@ class FusionNode:
 
                         dists.sort(key=lambda x: x[0])
                         nearest_points = [pt for _, pt in dists[:self.N]]
-                        nearby_points_base = self.transform_points(nearest_points, tf_velo_to_base)
-                        nearby_points_map = self.transform_points(nearby_points_base, self.T_base_to_map) 
+                        nearby_points_map = self.transform_points(nearest_points, tf_velo_to_map)
+                        # nearby_points_map = self.transform_points(nearby_points_base, self.T_base_to_map) 
             
                         output.append({
                             "label": label,
@@ -173,13 +197,13 @@ class FusionNode:
                             "u_center": u_center,
                             "v_center": v_center,
                             "matched": False,
-                            "points_base": [{"x": q[0], "y": q[1], "z": q[2]} for q in nearby_points_base],
+                            # "points_base": [{"x": q[0], "y": q[1], "z": q[2]} for q in nearby_points_base],
                             "points_map": [{"x": p[0], "y": p[1], "z": p[2]} for p in nearby_points_map]
                         })
                     # merged_output = self.merge_nearby_labels(output, self.merge_distance)
                     # print(merged_output)
                     self.target_3d_pub.publish(json.dumps(output))
-                   
+                    rospy.loginfo(f"[FusionNode] Published 3D targets: {output}")
 
                 except Exception as e:
                     rospy.logwarn(f"[FusionNode] Failed to process: {e}")
@@ -190,5 +214,6 @@ if __name__ == "__main__":
     try:
         node = FusionNode()
         node.process_data()
+        rospy.spin()
     except rospy.ROSInterruptException:
         pass

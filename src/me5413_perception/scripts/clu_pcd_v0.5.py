@@ -66,7 +66,7 @@ class PointCloudProcessor:
     #     self.current_pose[:3, 3] = translation
 
     def update_pose_from_tf(self):
-        """Get transform from base_link to map and update current_pose"""
+        """Get transform from base to map and update current_pose"""
         while not rospy.is_shutdown():
            try:
             # (trans,rot) = self.tf_listener.lookupTransform('map', 'base_link', rospy.Time(0))

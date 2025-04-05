@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+import tf
 import rospy
 import json
 import numpy as np
@@ -15,30 +15,55 @@ class FusionVisualizer:
         rospy.init_node("visualize_fusion", anonymous=False)
 
         self.fusion_info = {}  # marker_id -> list of {label, conf}
-        rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
+        # rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
+        self.tf_listener = tf.TransformListener()
+        self.current_pose = np.eye(4)
         self.sub_info = rospy.Subscriber("/perception/fusion_box_labels", String, self.fusion_info_callback)
         self.sub_markers = rospy.Subscriber("/perception/marker/bbox_markers_fusion", MarkerArray, self.marker_callback)
-        
+        self.current_pose_inv = None
         self.pub_visual = rospy.Publisher("/perception/marker/bbox_markers_visualized", MarkerArray, queue_size=1)
-
+        # self.update_pose_from_tf()
     def fusion_info_callback(self, msg):
         try:
             self.fusion_info = json.loads(msg.data)
         except Exception as e:
             rospy.logwarn(f"[FusionVisualizer] Failed to parse fusion info: {e}")
 
-    def odom_callback(self, msg):
-        position = msg.pose.pose.position
-        orientation = msg.pose.pose.orientation
+    def update_pose_from_tf(self):
+        """Get transform from map to base and update current_pose"""
+        try:
+            # map to base transform
+            (trans, rot) = self.tf_listener.lookupTransform(
+                "base_link", "map", rospy.Time(0)
+            )
+            rotation_matrix = R.from_quat(rot).as_matrix()
+            translation = np.array(trans)
 
-        T_map2base = np.eye(4)
-        T_map2base[:3, 3] = [position.x, position.y, position.z]
-        rot_matrix = R.from_quat([orientation.x, orientation.y, orientation.z, orientation.w]).as_matrix()
-        T_map2base[:3, :3] = rot_matrix
+            T_map_to_base = np.eye(4)
+            T_map_to_base[:3, :3] = rotation_matrix
+            T_map_to_base[:3, 3] = translation
 
-        self.current_pose_inv = np.linalg.inv(T_map2base)
+            self.current_pose_inv = T_map_to_base
+        except (
+            tf.LookupException,
+            tf.ConnectivityException,
+            tf.ExtrapolationException,
+        ):
+            rospy.logwarn("TF lookup failed")
+
+    # def odom_callback(self, msg):
+    #     position = msg.pose.pose.position
+    #     orientation = msg.pose.pose.orientation
+
+    #     T_map2base = np.eye(4)
+    #     T_map2base[:3, 3] = [position.x, position.y, position.z]
+    #     rot_matrix = R.from_quat([orientation.x, orientation.y, orientation.z, orientation.w]).as_matrix()
+    #     T_map2base[:3, :3] = rot_matrix
+
+    #     self.current_pose_inv = np.linalg.inv(T_map2base)
 
     def marker_callback(self, msg):
+        self.update_pose_from_tf()
         if self.current_pose_inv is None:
             rospy.logwarn("[FusionVisualizer] Waiting for odom data...")
             return

@@ -18,14 +18,14 @@ class FallbackNavigator:
         self.max_inflate_ratio = rospy.get_param("~max_inflate_ratio", 2.5)
         self.inflate_step = rospy.get_param("~inflate_step", 0.2)
         self.box_size = rospy.get_param("~box_size", 0.8)
-        self.x_range = rospy.get_param("~x_range", [2.0, 22.0])
-        self.y_range = rospy.get_param("~y_range", [11.0, 19.0])
+        self.x_range = rospy.get_param("~x_range", [11.0, 19.0])
+        self.y_range = rospy.get_param("~y_range", [-22.0, -2.0])
         self.wait_time = rospy.get_param("~wait_time", 0.5)
         self.grid_resolution = rospy.get_param("~grid_resolution", 0.2)
 
         self.enable_fallback = False
         self.status_sub = rospy.Subscriber("/move_base/status", Bool, self.status_callback)
-        self.odom_sub = rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
+        # self.odom_sub = rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
         
         self.fallback_trigger_sub = rospy.Subscriber("/navigation/fallback_trigger", Bool, self.trigger_callback)
 
@@ -52,16 +52,38 @@ class FallbackNavigator:
         if self.enable_fallback:
             rospy.logwarn("[FallbackNavigator] Fallback mode ENABLED by main navigator.")
     
-    def odom_callback(self, msg):
-        position = msg.pose.pose.position
-        orientation = msg.pose.pose.orientation
+    # def odom_callback(self, msg):
+    #     position = msg.pose.pose.position
+    #     orientation = msg.pose.pose.orientation
 
-        translation = np.array([position.x, position.y, position.z])
-        rotation = R.from_quat([orientation.x, orientation.y, orientation.z, orientation.w]).as_matrix()
+    #     translation = np.array([position.x, position.y, position.z])
+    #     rotation = R.from_quat([orientation.x, orientation.y, orientation.z, orientation.w]).as_matrix()
 
-        self.current_pose = np.eye(4)
-        self.current_pose[:3, :3] = rotation
-        self.current_pose[:3, 3] = translation
+    #     self.current_pose = np.eye(4)
+    #     self.current_pose[:3, :3] = rotation
+    #     self.current_pose[:3, 3] = translation
+
+    def update_pose_from_tf(self):
+        """Get transform from base to map and update current_pose"""
+        try:
+            # Baselink to map transform
+            (trans, rot) = self.tf_listener.lookupTransform(
+                "map", "base_link", rospy.Time(0)
+            )
+            rotation_matrix = R.from_quat(rot).as_matrix()
+            translation = np.array(trans)
+
+            T_base_to_map = np.eye(4)
+            T_base_to_map[:3, :3] = rotation_matrix
+            T_base_to_map[:3, 3] = translation
+
+            self.current_pose = T_base_to_map
+        except (
+            tf.LookupException,
+            tf.ConnectivityException,
+            tf.ExtrapolationException,
+        ):
+            rospy.logwarn("TF lookup failed")
 
     def cluster_callback(self, msg):
         try:
@@ -159,6 +181,7 @@ class FallbackNavigator:
         rospy.loginfo(f"[FallbackNavigator] Target point: x={position[0]:.2f}, y={position[1]:.2f}, z={position[2]:.2f}")
 
     def publish_arrow_marker(self, position):
+        self.update_pose_from_tf()
         marker = Marker()
         marker.header.frame_id = "map"
         marker.header.stamp = rospy.Time.now()

@@ -1,18 +1,16 @@
-<library path="lib/libsimple_panel">
-
-  <class type="rviz_panel::ME5413ControlPanel" base_class_type="rviz::Panel">
+<library path="lib/libinteractive_tools">
+  <class type="rviz_panel::ME5413ControlPanel"
+         base_class_type="rviz::Panel">
     <description>
       A simple panel widget with two buttons.
     </description>
   </class>
 
-</library>
-
-<library path="lib/libinteractive_tools">
   <class name="interactive_tools/PlannerSelectorPanel"
          type="interactive_tools::PlannerSelectorPanel"
          base_class_type="rviz::Panel">
-    <description>Planner selection and restart panel</description>
+    <description>
+      Planner selection and restart panel
+    </description>
   </class>
 </library>
-

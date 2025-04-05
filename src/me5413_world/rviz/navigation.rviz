@@ -249,8 +249,8 @@ Visualization Manager:
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 23.25141143798828
-            Min Value: -1.6237269639968872
+            Max Value: 22.468000411987305
+            Min Value: -1.2905504703521729
             Value: true
           Axis: X
           Channel Name: intensity
@@ -277,8 +277,8 @@ Visualization Manager:
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 2.335721015930176
-            Min Value: -0.06966504454612732
+            Max Value: 2.3372488021850586
+            Min Value: -0.07091906666755676
             Value: true
           Axis: Z
           Channel Name: intensity
@@ -286,7 +286,7 @@ Visualization Manager:
           Color: 255; 255; 255
           Color Transformer: AxisColor
           Decay Time: 0
-          Enabled: false
+          Enabled: true
           Invert Rainbow: false
           Max Color: 255; 255; 255
           Min Color: 0; 0; 0
@@ -301,7 +301,7 @@ Visualization Manager:
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
-          Value: false
+          Value: true
         - Class: rviz/Camera
           Enabled: true
           Image Rendering: background and overlay
@@ -731,7 +731,8 @@ Visualization Manager:
       Marker Topic: /perception/marker/bbox_markers_visualized
       Name: MarkerArray
       Namespaces:
-        {}
+        box: true
+        visualized_text: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -762,7 +763,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 11.199999809265137
+      Distance: 8.294201850891113
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -770,17 +771,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: -0.07112884521484375
+        Y: -1.7761075496673584
+        Z: 7.62939453125e-06
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7853981852531433
+      Pitch: 0.5747968554496765
       Target Frame: base_link
-      Yaw: 2.945399761199951
+      Yaw: 4.695408821105957
     Saved:
       - Class: rviz/ThirdPersonFollower
         Distance: 4
@@ -841,4 +842,4 @@ Window Geometry:
     collapsed: false
   Width: 1920
   X: 1017
-  Y: 126
+  Y: 68

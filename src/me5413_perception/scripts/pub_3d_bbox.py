@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import tf
 import rospy
 import numpy as np
 from visualization_msgs.msg import MarkerArray, Marker
@@ -13,7 +14,7 @@ class BBoxTransformer:
 
         # 订阅 bbox 和 odom
         # rospy.Subscriber("/perception/bbox_markers", MarkerArray, self.bbox_callback)
-        rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
+        # rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
         rospy.Subscriber("/perception/marker/nav_goal_marker", Marker, self.arrow_callback)
 
         # 发布变换后的 bbox
@@ -22,21 +23,45 @@ class BBoxTransformer:
         self.arrow_pub = rospy.Publisher("/perception/marker/arrow_marker_baselink", Marker, queue_size=1)
 
 
+        self.tf_listener = tf.TransformListener()
+        self.current_pose = np.eye(4)
         rospy.loginfo("BBoxTransformer started.")
-        rospy.spin()
 
-    def odom_callback(self, msg):
-        """ 获取 map → base_link 的位姿，计算 base_link → map 的逆变换 """
-        position = msg.pose.pose.position
-        orientation = msg.pose.pose.orientation
 
-        # 构造 map->base_link 的变换矩阵 T_map2base
-        T_map2base = np.eye(4)
-        T_map2base[:3, 3] = [position.x, position.y, position.z]
-        rot_matrix = R.from_quat([orientation.x, orientation.y, orientation.z, orientation.w]).as_matrix()
-        T_map2base[:3, :3] = rot_matrix
+    def update_pose_from_tf(self):
+        """Get transform from map to base and update current_pose"""
+        try:
+            # Velodyne to map transform
+            (trans, rot) = self.tf_listener.lookupTransform(
+                "base_link", "map", rospy.Time(0)
+            )
+            rotation_matrix = R.from_quat(rot).as_matrix()
+            translation = np.array(trans)
 
-        self.current_pose_inv = np.linalg.inv(T_map2base)
+            T_map_to_base = np.eye(4)
+            T_map_to_base[:3, :3] = rotation_matrix
+            T_map_to_base[:3, 3] = translation
+
+            self.current_pose_inv = T_map_to_base
+        except (
+            tf.LookupException,
+            tf.ConnectivityException,
+            tf.ExtrapolationException,
+        ):
+            rospy.logwarn("TF lookup failed")
+
+    # def odom_callback(self, msg):
+    #     """ 获取 map → base_link 的位姿，计算 base_link → map 的逆变换 """
+    #     position = msg.pose.pose.position
+    #     orientation = msg.pose.pose.orientation
+
+    #     # 构造 map->base_link 的变换矩阵 T_map2base
+    #     T_map2base = np.eye(4)
+    #     T_map2base[:3, 3] = [position.x, position.y, position.z]
+    #     rot_matrix = R.from_quat([orientation.x, orientation.y, orientation.z, orientation.w]).as_matrix()
+    #     T_map2base[:3, :3] = rot_matrix
+
+    #     self.current_pose_inv = np.linalg.inv(T_map2base)
 
     # def bbox_callback(self, msg):
     #     """ 将 bbox 从 map 坐标转换到 base_link 坐标 """
@@ -104,6 +129,7 @@ class BBoxTransformer:
     #         self.transformed_pub.publish(transformed_array)
 
     def arrow_callback(self, marker):
+        self.update_pose_from_tf()
         if self.current_pose_inv is None:
             rospy.logwarn("等待里程计数据...")
             return
@@ -136,5 +162,6 @@ class BBoxTransformer:
 if __name__ == "__main__":
     try:
         BBoxTransformer()
+        rospy.spin()
     except rospy.ROSInterruptException:
         pass

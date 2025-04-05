@@ -1,6 +1,8 @@
 import rospy
 from sensor_msgs.msg import Imu
 import numpy as np
+from tf.transformations import quaternion_multiply, quaternion_inverse
+
 
 class ImuBiasFilter:
     def __init__(self):
@@ -9,13 +11,14 @@ class ImuBiasFilter:
         rospy.loginfo("IMU Bias Filter node started")
         
         # Subscriber to receive IMU bias messages
-        self.subscriber = rospy.Subscriber('/imu/data/bias', Imu, self.calculate_mean_bias)
+        self.sub_bias = rospy.Subscriber('/imu/data/bias', Imu, self.calculate_mean_bias)
         
         # Subscriber to receive IMU messages
-        self.subscriber = rospy.Subscriber('/imu/data', Imu, self.filter_imu, queue_size=50)
-        
+        self.sub_imu = rospy.Subscriber('/imu/data', Imu, self.filter_imu, queue_size=100)
+        # self.subscriber = rospy.Subscriber('/imu/data', Imu, self.filter_imu)
         # Publisher to send filtered IMU bias
-        self.publisher = rospy.Publisher('/imu/data/bias_filtered', Imu, queue_size=50)
+        # self.publisher = rospy.Publisher('/imu/data/bias_filtered', Imu, queue_size=100)
+        self.publisher = rospy.Publisher('/imu/data/bias_filtered', Imu, queue_size=100)
         
         # Lists to store IMU bias samples
         self.bias_orientation_x = []
@@ -47,9 +50,12 @@ class ImuBiasFilter:
         
         # Filtered IMU message
         self.processed_imu = None
-
+        
+        self.bias_ready = False
+        
+        
         # Loop rate
-        self.rate = rospy.Rate(50)  # 10 Hz
+        self.rate = rospy.Rate(100)  # 50Hz
     
     
     def calculate_mean_bias(self, msg):
@@ -92,8 +98,9 @@ class ImuBiasFilter:
         self.mean_linear_acceleration_y_bias = np.mean(self.bias_linear_acceleration_y)
         self.mean_linear_acceleration_z_bias = np.mean(self.bias_linear_acceleration_z)
         
-        if len(self.bias_orientation_x) >= 100:
+        if len(self.bias_orientation_x) >= 100: # 100
             rospy.loginfo("bias stack cleared")
+            self.bias_ready = True
             self.bias_orientation_x = []
             self.bias_orientation_y = []
             self.bias_orientation_z = []
@@ -106,28 +113,33 @@ class ImuBiasFilter:
             self.bias_linear_acceleration_x = []
             self.bias_linear_acceleration_y = []
             self.bias_linear_acceleration_z = []
-
-        # rospy.loginfo("Computed Mean Bias:")
-        # rospy.loginfo("Orientation: x=%.4f, y=%.4f, z=%.4f, w=%.4f", 
-        #                 self.mean_orientation_x_bias, self.mean_orientation_y_bias, 
-        #                 self.mean_orientation_z_bias, self.mean_orientation_w_bias)
-        # rospy.loginfo("Angular Velocity: x=%.4f, y=%.4f, z=%.4f", 
-        #                 self.mean_angular_velocity_x_bias, self.mean_angular_velocity_y_bias, 
-        #                 self.mean_angular_velocity_z_bias)
-        # rospy.loginfo("Linear Acceleration: x=%.4f, y=%.4f, z=%.4f", 
-        #                 self.mean_linear_acceleration_x_bias, self.mean_linear_acceleration_y_bias, 
-        #                 self.mean_linear_acceleration_z_bias)
     
     def filter_imu(self, msg):
         """Callback function to filter the IMU."""
         # rospy.loginfo("Received IMU message")
                 # Apply bias correction if means are computed
                 
-        if self.mean_orientation_x_bias is not None:
-            msg.orientation.x -= self.mean_orientation_x_bias
-            msg.orientation.y -= self.mean_orientation_y_bias
-            msg.orientation.z -= self.mean_orientation_z_bias
-            msg.orientation.w -= self.mean_orientation_w_bias
+        if self.mean_linear_acceleration_x_bias is not None and self.bias_ready:
+            # msg.orientation.x -= self.mean_orientation_x_bias
+            # msg.orientation.y -= self.mean_orientation_y_bias
+            # msg.orientation.z -= self.mean_orientation_z_bias
+            # msg.orientation.w -= self.mean_orientation_w_bias
+            
+            q_array = [msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w]
+            
+            bias_array = [self.mean_orientation_x_bias, self.mean_orientation_y_bias, self.mean_orientation_z_bias, self.mean_orientation_w_bias]
+            bias_array = np.array(bias_array)
+            bias_array /= np.linalg.norm(bias_array)
+            
+            q_bias = quaternion_inverse(bias_array)
+            
+            q_corrected = quaternion_multiply(q_array, q_bias)
+            
+            msg.orientation.x = q_corrected[0]
+            msg.orientation.y = q_corrected[1]
+            msg.orientation.z = q_corrected[2]
+            msg.orientation.w = q_corrected[3]
+            
             
             msg.angular_velocity.x -= self.mean_angular_velocity_x_bias
             msg.angular_velocity.y -= self.mean_angular_velocity_y_bias
@@ -145,15 +157,18 @@ class ImuBiasFilter:
             rospy.loginfo("Linear Acceleration: x=%.4f, y=%.4f, z=%.4f",
                             msg.linear_acceleration.x, msg.linear_acceleration.y, msg.linear_acceleration.z)
             
+            msg.header.stamp = rospy.Time.now()
             self.processed_imu = msg  # Update the filtered IMU message
+            # self.publisher.publish(self.processed_imu)
     
     def run(self):
-        """Publish the filtered IMU bias."""
+        # """Publish the filtered IMU bias."""
         while not rospy.is_shutdown():
             if self.processed_imu is not None:
                 rospy.loginfo("Publishing the filtered IMU bias")
                 self.publisher.publish(self.processed_imu)
             self.rate.sleep()
+        # rospy.spin()
 
 if __name__ == '__main__':
     node = ImuBiasFilter()

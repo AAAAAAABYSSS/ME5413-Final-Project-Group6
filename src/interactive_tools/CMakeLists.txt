@@ -17,14 +17,17 @@ find_package(Qt5 REQUIRED COMPONENTS Widgets)
 
 set(UI_FILES
   resource/planner_selector_panel.ui
+  resource/simple_panel.ui
 )
 
 set(HEADER_FILES
   include/interactive_tools/planner_selector_panel.h
+  include/interactive_tools/rviz_panel.hpp
 )
 
 set(SRC_FILES
   src/planner_selector_panel.cpp
+  src/rviz_panel.cpp
 )
 
 qt5_wrap_ui(UI_HEADERS ${UI_FILES})

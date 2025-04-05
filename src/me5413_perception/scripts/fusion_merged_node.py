@@ -40,6 +40,7 @@ class FusionMergedNode:
             rospy.logwarn(f"[FusionMergedNode] YOLO targets parse failed: {e}")
 
     def bbox_callback(self, msg):
+        rospy.loginfo(f"[FusionMergedNode] Received {len(msg.markers)} markers")
         with self.lock:
             marker_out = MarkerArray()
             box_info_output = {}

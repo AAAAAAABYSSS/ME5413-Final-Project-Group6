@@ -23,6 +23,8 @@ catkin_install_python(PROGRAMS
   scripts/fusion_node.py
   scripts/fusion_merged_node.py
   scripts/visualize_fusion.py
+  scripts/target_detect.py
+  scripts/pub_target.py
 
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
