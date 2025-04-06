@@ -6,6 +6,8 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /Planning1
+        - /Planning1/Local Path1
         - /TF1/Frames1
       Splitter Ratio: 0.6628242135047913
     Tree Height: 354
@@ -244,8 +246,8 @@ Visualization Manager:
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 23.61642074584961
-            Min Value: 8.763148307800293
+            Max Value: 23.259464263916016
+            Min Value: 11.475299835205078
             Value: true
           Axis: X
           Channel Name: intensity
@@ -476,7 +478,7 @@ Visualization Manager:
         - Alpha: 1
           Buffer Length: 1
           Class: rviz/Path
-          Color: 25; 255; 0
+          Color: 245; 121; 0
           Enabled: true
           Head Diameter: 0.30000001192092896
           Head Length: 0.20000000298023224
@@ -494,7 +496,7 @@ Visualization Manager:
           Radius: 0.029999999329447746
           Shaft Diameter: 0.10000000149011612
           Shaft Length: 0.10000000149011612
-          Topic: /move_base/TrajectoryPlannerROS/local_plan
+          Topic: /move_base/TebLocalPlannerROS/local_plan
           Unreliable: false
           Value: true
         - Alpha: 0.699999988079071
@@ -880,7 +882,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 24.879304885864258
+      Distance: 14.376100540161133
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -888,17 +890,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 12.635351181030273
-        Y: 0.6032297015190125
-        Z: -3.45988246408524e-06
+        X: 2.0641276836395264
+        Y: 0.3430275321006775
+        Z: -9.40971131058177e-06
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7803982496261597
+      Pitch: 1.334796667098999
       Target Frame: base_link
-      Yaw: 1.4753975868225098
+      Yaw: 1.5303983688354492
     Saved:
       - Class: rviz/ThirdPersonFollower
         Distance: 4

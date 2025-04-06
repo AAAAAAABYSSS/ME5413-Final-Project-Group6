@@ -14,7 +14,7 @@
   <!-- global planner name-->
   <arg name="global_planner" default="dstar" />
   <!-- local planner name -->
-  <arg name="local_planner" default="pid" />
+  <arg name="local_planner" default="teb" />
 
 
   <!-- Launch Move Base -->
@@ -79,6 +79,10 @@
 
     <param name="base_local_planner" value="mpc_controller/MPCController" if="$(eval arg('local_planner')=='mpc')" />
     <rosparam file="$(find jackal_navigation)/config/controller/mpc_controller_params.yaml" command="load" if="$(eval arg('local_planner')=='mpc')" />
+
+    <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS" if="$(eval arg('local_planner')=='teb')" />
+    <rosparam file="$(find jackal_navigation)/config/controller/teb_local_planner_params.yaml" command="load" if="$(eval arg('local_planner')=='teb')"/>
+
 
     <param name="base_local_planner" value="static_controller/StaticController" if="$(eval arg('local_planner')=='static')" />
     
