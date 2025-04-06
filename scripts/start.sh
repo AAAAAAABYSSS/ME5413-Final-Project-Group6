@@ -41,8 +41,8 @@ case $choice in
     2)
         echo "Launching navigation mode..."
         gnome-terminal --tab -- bash -c "source devel/setup.bash; roslaunch me5413_perception me5413_perception.launch; exec bash"
-        gnome-terminal --tab -- bash -c "source devel/setup.bash; source src/me5413_thirdparty/ros_motion_planning/devel/setup.bash; roslaunch me5413_navigation navigation_new.launch ; exec bash"
-        # gnome-terminal --tab -- bash -c "source devel/setup.bash; roslaunch me5413_navigation navigation_old.launch ; exec bash"
+        # gnome-terminal --tab -- bash -c "source devel/setup.bash; source src/me5413_thirdparty/ros_motion_planning/devel/setup.bash; roslaunch me5413_navigation navigation_new.launch ; exec bash"
+        gnome-terminal --tab -- bash -c "source devel/setup.bash; roslaunch me5413_navigation navigation_old.launch ; exec bash"
         ;;
     3)
         echo "Launching perception mode..."

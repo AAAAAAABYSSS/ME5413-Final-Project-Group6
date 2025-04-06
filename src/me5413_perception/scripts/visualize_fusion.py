@@ -188,7 +188,7 @@ class FusionVisualizer:
 
 
             if best_label is not None:
-                new_marker.text = f"{marker.id}{best_label}: {round(best_conf, 2)}"
+                new_marker.text = f"{marker.id}: {best_label}: {round(best_conf, 2)}"
             else:
                 new_marker.text = ""
 

@@ -33,22 +33,23 @@ class BridgeCrossingManager:
             self.navigator.publish_goal(self.navigator.target_box_position)
             return
 
-        # search_point = self.navigator.compute_exploration_point()
-        # rospy.loginfo("[BridgeCrossing] No target found, exploring at point {}.".format(search_point))
-        # self.navigator.publish_goal(search_point)
-        # self.navigator.wait_for_goal_or_detection()
-
-        if self.navigator.target_box_found(post_bridge=True):
-            rospy.loginfo("[BridgeCrossing] Target box found after exploration.")
-            self.navigator.publish_goal(self.navigator.target_box_position)
-            return
-
         self.navigator.perform_rotation_scan()
+
         if self.navigator.target_box_found(post_bridge=True):
             rospy.loginfo("[BridgeCrossing] Target box found after rotation scan.")
             self.navigator.publish_goal(self.navigator.target_box_position)
+            return
+
+        rospy.logwarn("[BridgeCrossing] No target box found after full scan.")
+        rarest_box = self.navigator.find_rarest_postbridge_box_by_prebridge_label_stats()
+        if rarest_box:
+            rospy.loginfo(f"[BridgeCrossing] Navigating to rarest post-bridge box: {rarest_box['id']} ({rarest_box['best_label']})")
+            self.navigator.publish_goal(rarest_box["position"])
+            self.navigator.publish_arrow_marker(rarest_box["position"])
+            self.navigator.last_goal_position = rarest_box["position"]
         else:
-            rospy.logwarn("[BridgeCrossing] No target box found after full scan.")
+            rospy.logwarn("[BridgeCrossing] No rarest box available to navigate to.")
+
 
 class FurthestBoxNavigator:
     def __init__(self):
@@ -94,33 +95,70 @@ class FurthestBoxNavigator:
         self.open_bridge_pub = rospy.Publisher("/cmd_open_bridge", Bool, queue_size=1)
 
         rospy.Timer(rospy.Duration(1.0), self.update_pose_from_tf)
+        rospy.Timer(rospy.Duration(1.0), self.periodic_bridge_check)
+
         rospy.loginfo("FurthestBoxNavigator Initialization completed")
         rospy.spin()
 
-    def target_box_found(self, post_bridge=False):
-        if not self.last_bbox_msg:
-            return False
+    def periodic_bridge_check(self, event):
+        if self.try_publish_bridge_goal():
+            
+            rospy.loginfo("[BridgeCheck] Periodically published bridge goal.")
 
-        for marker_id, info in self.fusion_info.items():
-            if not info.get("matched"):
+    def find_rarest_postbridge_box_by_prebridge_label_stats(self):
+        if not self.last_bbox_msg or not self.fusion_info:
+            return None
+        
+        bridge_front_label_count = {}
+        postbridge_boxes = []
+
+        for marker in self.last_bbox_msg.markers:
+            if marker.ns != "box":
                 continue
-            for h in info.get("history", []):
-                if h.get("label") == "target":
-                    for marker in self.last_bbox_msg.markers:
-                        if str(marker.id) == marker_id:
-                            x = marker.pose.position.x
-                            if post_bridge and x <= self.bridge_pos:
-                                continue  # filter out pre-bridge targets
-                            self.target_box_position = [
-                                marker.pose.position.x,
-                                marker.pose.position.y,
-                                marker.pose.position.z
-                            ]
-                            return True
-        return False
 
-    # def compute_exploration_point(self):
-    #     return [self.post_bridge_position[0] - 1.0, self.post_bridge_position[1] - 1.0, self.post_bridge_position[2]]
+            marker_id = str(marker.id)
+            info = self.fusion_info.get(marker_id, {})
+            if not info.get("matched", False):
+                continue
+
+            labels = {}
+            for h in info.get("history", []):
+                label = h.get("label")
+                conf = h.get("conf")
+                if label:
+                    if label not in labels:
+                        labels[label] = []
+                    labels[label].append(conf)
+
+            if not labels:
+                continue
+
+            best_label, best_conf = max(
+                ((l, sum(c) / len(c)) for l, c in labels.items()), key=lambda x: x[1]
+            )
+
+            box_info = {
+                "id": marker_id,
+                "position": [marker.pose.position.x, marker.pose.position.y, marker.pose.position.z],
+                "best_label": best_label,
+                "avg_conf": best_conf
+            }
+
+            if marker.pose.position.x > 5.0:
+                bridge_front_label_count[best_label] = bridge_front_label_count.get(best_label, 0) + 1
+            else:
+                postbridge_boxes.append(box_info)
+
+        if len(postbridge_boxes) < 4:
+            rospy.logwarn("[RareLabel] Less than 4 post-bridge boxes available.")
+            return None
+
+        def get_label_count(label):
+            return bridge_front_label_count.get(label, 0)
+
+        rarest_box = min(postbridge_boxes, key=lambda b: get_label_count(b["best_label"]))
+        rospy.loginfo(f"[RareLabel] Rarest post-bridge box is {rarest_box['id']} with label '{rarest_box['best_label']}' (avg conf: {rarest_box['avg_conf']:.2f}), seen {get_label_count(rarest_box['best_label'])} times before bridge.")
+        return rarest_box
 
     def wait_for_goal_or_detection(self):
         rospy.sleep(3.0)
@@ -141,8 +179,8 @@ class FurthestBoxNavigator:
         rospy.logwarn("[Scan] No target found after full rotation scan at both positions.")
 
     def status_callback(self, msg):
-        self.reach_goal = msg.data
-        
+        self.reach_goal = msg
+
         if self.try_publish_bridge_goal():
             return
 
@@ -168,47 +206,9 @@ class FurthestBoxNavigator:
             self.crossing_manager.execute_crossing()
             self.has_crossed_bridge = True
             self.crossing_manager.after_crossing_logic()
-        
-        # if self.reach_goal and self.bridge_goal_sent and self.has_crossed_bridge:
-        #     rospy.loginfo("[Navigator] Had croossed bridge goal.")
-        #     if self.target_box_found(self, post_bridge=False):
-        #         self.publish_goal(self.target_box_position)
-        #         self.publish_arrow_marker(self.target_box_position)
-        #     else:
-        #         rospy.loginfo("[Navigator] No target box found. Exploring...")
-
 
     def bbox_callback(self, msg):
 
-        self.has_received_bbox = True
-        self.last_bbox_msg = msg
-        label_set = set()
-        unmatched_boxes = []
-
-        for marker in msg.markers:
-            if marker.ns == "bridge":
-                self.bridge_found = True
-                continue
-            if marker.ns != "box":
-                continue
-
-            marker_id = str(marker.id)
-            if marker.pose.position.x > 5.0:
-                info = self.fusion_info.get(marker_id, {})
-                if not info.get("matched", False):
-                    unmatched_boxes.append(marker)
-                for h in info.get("history", []):
-                    label_set.add(h["label"])
-
-        if not unmatched_boxes:
-            self.try_publish_bridgehead_if_ready(msg, label_set)
-            self.try_publish_bridge_goal()
-
-        if self.in_fallback_mode and unmatched_boxes:
-            self.exit_fallback_mode()
-            self.find_and_publish_new_goal(self.last_bbox_msg)
-
-    def bbox_callback(self, msg):
         self.has_received_bbox = True
         self.last_bbox = MarkerArray()
         unmatched_box_count = 0 
@@ -270,6 +270,7 @@ class FurthestBoxNavigator:
                                     bridge_marker.pose.position.y, 0.0]
             self.post_bridge_position = [self.bridge_position[0] - self.bridge_length / 2,
                                          self.bridge_position[1], 0.0]
+            rospy.loginfo(f"[BridgeCheck] box_count={box_count}, label_count={len(label_set)}, bridge_marker={bridge_marker is not None}, any_unmatched={any_unmatched}")
 
     def try_publish_bridge_goal(self):
         if self.bridge_ready and self.bridge_position and not self.bridge_goal_sent:
@@ -281,24 +282,6 @@ class FurthestBoxNavigator:
             self.bridge_goal_sent = True
             return True
         return False
-
-    # def find_and_publish_new_goal(self, msg):
-    #     max_dist = -1
-    #     furthest_box = None
-    #     for marker in msg.markers:
-    #         if marker.ns != "box" or marker.pose.position.x <= self.bridge_pos:
-    #             continue
-    #         dist = np.linalg.norm(np.array([marker.pose.position.x,
-    #                                         marker.pose.position.y]) - self.current_pose[:2, 3])
-    #         if dist > max_dist:
-    #             max_dist = dist
-    #             furthest_box = marker.pose.position
-
-    #     if furthest_box:
-    #         pos = [furthest_box.x, furthest_box.y, furthest_box.z]
-    #         self.publish_goal(pos)
-    #         self.publish_arrow_marker(pos)
-    #         return pos
 
     def find_and_publish_new_goal(self, msg):
         if self.bridge_ready and self.bridge_position and not self.bridge_goal_sent:
@@ -368,7 +351,7 @@ class FurthestBoxNavigator:
         except Exception as e:
             rospy.logwarn(f"[FusionInfo] Failed to parse: {e}")
 
-    def update_pose_from_tf(self):
+    def update_pose_from_tf(self, event):
         try:
             trans, rot = self.tf_listener.lookupTransform("map", "base_link", rospy.Time(0))
             T = np.eye(4)

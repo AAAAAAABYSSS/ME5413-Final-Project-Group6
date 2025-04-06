@@ -11,6 +11,8 @@ Panels:
         - /Planning1
         - /Evaluation1
         - /MarkerArray1
+        - /Path1
+        - /Path2
       Splitter Ratio: 0.6628242135047913
     Tree Height: 740
   - Class: rviz/Selection
@@ -250,8 +252,8 @@ Visualization Manager:
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 23.53946876525879
-            Min Value: -1.318720817565918
+            Max Value: 23.51309585571289
+            Min Value: -0.1953677237033844
             Value: true
           Axis: X
           Channel Name: intensity
@@ -278,8 +280,8 @@ Visualization Manager:
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 2.3346457481384277
-            Min Value: -0.07016271352767944
+            Max Value: 2.337602138519287
+            Min Value: -1.4624905586242676
             Value: true
           Axis: Z
           Channel Name: intensity
@@ -335,6 +337,7 @@ Visualization Manager:
               Value: true
             Marker: true
             MarkerArray: true
+            Path: true
             Planning:
               Foot Print: true
               Full Path: true
@@ -732,8 +735,58 @@ Visualization Manager:
       Marker Topic: /perception/marker/bbox_markers_visualized
       Name: MarkerArray
       Namespaces:
-        {}
+        box: true
+        bridge: true
+        visualized_text: true
       Queue Size: 100
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Queue Size: 10
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /move_base/PathPlanner/plan
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 245; 121; 0
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Queue Size: 10
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /move_base/TebLocalPlannerROS/local_plan
+      Unreliable: false
       Value: true
   Enabled: true
   Global Options:
@@ -763,7 +816,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 35.30255126953125
+      Distance: 30.6188907623291
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -771,17 +824,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.015091896057128906
-        Y: 0.8991031646728516
+        X: -8.186308860778809
+        Y: -3.909310817718506
         Z: 1.1444091796875e-05
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.2047966718673706
+      Pitch: 1.5497963428497314
       Target Frame: base_link
-      Yaw: 3.5804128646850586
+      Yaw: 3.410412549972534
     Saved:
       - Class: rviz/ThirdPersonFollower
         Distance: 4

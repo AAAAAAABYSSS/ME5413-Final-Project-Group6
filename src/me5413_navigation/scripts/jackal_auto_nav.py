@@ -74,7 +74,7 @@ class NavigationSuccessChecker:
                     rospy.loginfo("Navigation Success: Goal reached!")
                     self.move_curr_pub.publish(Bool(data=True))
                     self.move_curr_status = False    # 马上重置状态
-                    self.cancel_navigation_goal()
+                    # self.cancel_navigation_goal()
                     # Start rotating 360 degrees after goal is reached
                     self.rotate_360()
                     # Reset the counter after success
