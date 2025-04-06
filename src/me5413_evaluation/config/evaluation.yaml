@@ -1,0 +1,9 @@
+bbox_evaluation:
+  dest_boxes_x: 0.0 # Fixed destination boxes for ground truth plus extra points
+  dest_boxes_y: [-6.0, -10.0, -14.0, -18.0] # Fixed destination boxes for ground truth plus extra points
+  ax_xlim: [-1.5, 23.5]
+  ax_ylim: [-23.5, 1.5]
+  dest_extent: 0.8
+  iou_threshold: 0.5
+  linewidth: 0.5
+  fontsize: 5

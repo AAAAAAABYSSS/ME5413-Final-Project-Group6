@@ -13,4 +13,12 @@
       Planner selection and restart panel
     </description>
   </class>
+
+  <class name="interactive_tools/PlotJugglerPanel"
+         type="interactive_tools::PlotJugglerPanel"
+         base_class_type="rviz::Panel">
+    <description>PlotJuggler inside RViz</description>
+  </class>
+</library>
+
 </library>

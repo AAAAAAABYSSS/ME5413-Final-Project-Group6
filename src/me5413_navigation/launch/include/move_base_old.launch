@@ -8,6 +8,7 @@
     <rosparam file="$(find me5413_navigation)/config/map_nav_params/local_costmap_params.yaml" command="load" />
     <rosparam file="$(find me5413_navigation)/config/map_nav_params/global_costmap_params.yaml" command="load" />
     
+    <!-- <rosparam file="$(find me5413_navigation)/config/base_local_planner_params.yaml" command="load" /> -->
     <rosparam file="$(find me5413_navigation)/config/base_local_planner_params.yaml" command="load" />
     <rosparam file="$(find me5413_navigation)/config/move_base_params.yaml" command="load" />
     

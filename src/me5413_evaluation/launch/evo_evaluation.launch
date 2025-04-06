@@ -1,0 +1,16 @@
+<launch>
+  <!-- Logger: ground truth -->
+  <node pkg="me5413_evaluation" type="ground_truth_logger_node" name="ground_truth_logger_node" output="screen" />
+
+  <!-- Logger: AMCL pose -->
+  <node pkg="me5413_evaluation" type="amcl_logger_node" name="amcl_logger_node" output="screen" />
+
+  <!-- Evaluator: Goal vs Final -->
+  <node pkg="me5413_evaluation" type="goal_vs_final_evaluator_node" name="goal_vs_final_evaluator_node" output="screen" />
+
+  <rosparam file="$(find me5413_evaluation)/config/evaluation.yaml" command="load" />
+
+  <node pkg="me5413_evaluation" type="bbox_evaluation.py" name="bbox_evaluation" output="screen" respawn="true" />
+
+</launch>
+

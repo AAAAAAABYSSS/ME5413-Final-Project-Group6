@@ -8,8 +8,14 @@ project(me5413_evaluation)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  rospy
-  visualization_msgs
+  roscpp
+  geometry_msgs
+  gazebo_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  move_base_msgs
+  roslib 
 )
 
 ## System dependencies are found with CMake's conventions
@@ -164,9 +170,9 @@ include_directories(
 # )
 catkin_install_python(PROGRAMS
   scripts/evaluate_pcd.py
+  scripts/bbox_evaluation.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
-
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
 # install(TARGETS ${PROJECT_NAME}_node
@@ -207,3 +213,13 @@ catkin_install_python(PROGRAMS
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+add_executable(ground_truth_logger_node src/ground_truth_logger_node.cpp)
+target_link_libraries(ground_truth_logger_node ${catkin_LIBRARIES})
+
+add_executable(amcl_logger_node src/amcl_logger_node.cpp)
+target_link_libraries(amcl_logger_node ${catkin_LIBRARIES})
+
+add_executable(goal_vs_final_evaluator_node src/goal_vs_final_evaluator_node.cpp)
+target_link_libraries(goal_vs_final_evaluator_node ${catkin_LIBRARIES})
+

@@ -1,29 +1,29 @@
 yolo_detector:
-  min_confidence: 0.75
+  min_confidence: 0.85
 
 fusion_node:
-  num_closest_points: 3   
+  num_closest_points: 10 #3   
   merge_distance: 0.8
 
 furthest_box_navigator:
   overlap_threshold: 0.6
-  bridge_length: 3.0
+  bridge_length: 4.0
   yaw_bin_size: 20
   box_big_size: 1.2
   bridge_pos: 9.0
 
 pseudo_status:
-  min_dist: 3 #4.5
+  min_dist: 2.5 #4.5
 
 fusion_merged_node:
   box_big_size: 1.2
-  point_inside_ratio_threshold: 0.8
-  max_history: 300
+  point_inside_ratio_threshold: 0.7 #0.8
+  max_history: 400
   # unmatch_max: 10
 
 fallback_navigator:
   inflate_ratio: 1.2             # Initial inflation ratio
-  max_inflate_ratio: 2.5         # Maximum inflation ratio
+  max_inflate_ratio: 3.0         # Maximum inflation ratio
   inflate_step: 0.2              # Increment per iteration
   box_size: 0.8                  # Original box size
   x_range: [11.0, 19.0]         # Exploration area X range
@@ -54,7 +54,7 @@ target_detector:
   overall_range: [-5, -25]
   eligible_x_range: [-1.5, 23.5]
   eligible_y_range: [-23.5, -1.5]
-  eligible_offset: 0.1
+  eligible_offset: 0.4
   roi_x: [-0.5, 19.5]
   roi_y: [-22.5, -1.7]
   roi_z: [0.05, 99] # [-0.3, 99]

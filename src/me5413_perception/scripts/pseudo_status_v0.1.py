@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Always publish /move_base/status
 import tf
 import rospy
 import numpy as np

@@ -139,6 +139,42 @@ class FusionVisualizer:
                         new_marker.color.g = 0.0
                         new_marker.color.b = 0.0
                         new_marker.color.a = 0.5
+
+                    if "history" in info:
+                        for entry in info["history"]:
+                            label_stats[entry["label"]].append(entry["conf"])
+
+                        if label_stats:
+                            best_label, best_conf = max(
+                                ((lbl, sum(confs)/len(confs)) for lbl, confs in label_stats.items()),
+                                key=lambda x: x[1]
+                            )
+                    
+                        if best_label is not None:
+                            text_marker = Marker()
+                            text_marker.header.frame_id = "base_link"
+                            text_marker.header.stamp = rospy.Time.now()
+                            text_marker.ns = "visualized_text"
+                            text_marker.id = marker.id + 10000  
+                            text_marker.type = Marker.TEXT_VIEW_FACING
+                            text_marker.action = Marker.ADD
+
+
+                            text_marker.pose.position.x = transformed_center[0]
+                            text_marker.pose.position.y = transformed_center[1]
+                            text_marker.pose.position.z = transformed_center[2] + marker.scale.z / 2.0 + 0.3
+                            text_marker.pose.orientation.w = 1.0  
+
+                            text_marker.scale.z = 0.3  
+                            text_marker.color.r = 1.0
+                            text_marker.color.g = 1.0
+                            text_marker.color.b = 1.0
+                            text_marker.color.a = 1.0
+                            text_marker.text = f"{best_label}: {round(best_conf, 2)}"
+                            text_marker.lifetime = rospy.Duration(1.0)
+
+                            visual_out.markers.append(text_marker)
+                
                 elif new_marker.ns == "bridge":
                     new_marker.color.r = 0.0
                     new_marker.color.g = 0.0
@@ -150,44 +186,9 @@ class FusionVisualizer:
                     new_marker.color.b = 0.5
                     new_marker.color.a = 0.5
 
-                if "history" in info:
-                    for entry in info["history"]:
-                        label_stats[entry["label"]].append(entry["conf"])
-
-                    if label_stats:
-                        best_label, best_conf = max(
-                            ((lbl, sum(confs)/len(confs)) for lbl, confs in label_stats.items()),
-                            key=lambda x: x[1]
-                        )
-                
-                    if best_label is not None:
-                        text_marker = Marker()
-                        text_marker.header.frame_id = "base_link"
-                        text_marker.header.stamp = rospy.Time.now()
-                        text_marker.ns = "visualized_text"
-                        text_marker.id = marker.id + 10000  
-                        text_marker.type = Marker.TEXT_VIEW_FACING
-                        text_marker.action = Marker.ADD
-
-
-                        text_marker.pose.position.x = transformed_center[0]
-                        text_marker.pose.position.y = transformed_center[1]
-                        text_marker.pose.position.z = transformed_center[2] + marker.scale.z / 2.0 + 0.3
-                        text_marker.pose.orientation.w = 1.0  
-
-                        text_marker.scale.z = 0.3  
-                        text_marker.color.r = 1.0
-                        text_marker.color.g = 1.0
-                        text_marker.color.b = 1.0
-                        text_marker.color.a = 1.0
-                        text_marker.text = f"{best_label}: {round(best_conf, 2)}"
-                        text_marker.lifetime = rospy.Duration(1.0)
-
-                        visual_out.markers.append(text_marker)
-
 
             if best_label is not None:
-                new_marker.text = f"{best_label}: {round(best_conf, 2)}"
+                new_marker.text = f"{marker.id}{best_label}: {round(best_conf, 2)}"
             else:
                 new_marker.text = ""
 

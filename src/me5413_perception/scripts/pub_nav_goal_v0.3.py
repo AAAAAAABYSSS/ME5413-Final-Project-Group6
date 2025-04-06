@@ -3,11 +3,12 @@ import tf
 import json
 import rospy
 import numpy as np
-from geometry_msgs.msg import PoseStamped, Point
-from visualization_msgs.msg import MarkerArray, Marker
+from scipy.ndimage import label
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Bool, String
 from scipy.spatial.transform import Rotation as R
+from geometry_msgs.msg import PoseStamped, Point
+from visualization_msgs.msg import MarkerArray, Marker
 
 class FurthestBoxNavigator:
     def __init__(self):
@@ -18,13 +19,15 @@ class FurthestBoxNavigator:
         self.box_size = rospy.get_param("~box_big_size", 0.8)
         self.yaw_bin_size = rospy.get_param("~yaw_bin_size", 30)
         self.box_half = self.box_size / 2.0
-
-        self.fallback_grid_resolution = rospy.get_param("~fallback_grid_resolution", 0.2)
-        self.x_range = rospy.get_param("~x_range", [2.0, 22.0])
-        self.y_range = rospy.get_param("~y_range", [11.0, 19.0])
-
         self.tf_listener = tf.TransformListener()
         self.current_pose = np.eye(4)
+
+        self.fallback_grid_resolution = rospy.get_param("~fallback_grid_resolution", 0.2)
+        self.x_range = rospy.get_param("~x_range", [11.0, 19.0])
+        self.y_range = rospy.get_param("~y_range", [-22.0, -2.0])
+        self.bridge_pos = rospy.get_param("~bridge_pos", 9.0)
+
+
         self.reach_goal = True
         self.last_goal_position = None
         self.last_bbox_msg = None
@@ -34,13 +37,12 @@ class FurthestBoxNavigator:
 
         self.bridge_ready = False
         self.bridge_position = None
+        self.bridge_found = False
 
         self.in_fallback_mode = False
         self.has_received_bbox = False
-
-        # rospy.Subscriber("/move_base/status", Bool, self.status_callback)
-        rospy.Subscriber("/move_status", Bool, self.status_callback)
-        rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
+        rospy.Subscriber("/move_base/status", Bool, self.status_callback)
+        # rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
         rospy.Subscriber("/perception/marker/bbox_markers_fusion", MarkerArray, self.bbox_callback)
         rospy.Subscriber("/perception/fusion_box_labels", String, self.fusion_info_callback)
 
@@ -52,7 +54,7 @@ class FurthestBoxNavigator:
         self.unfinished_pub = rospy.Publisher("/one_rot/unfinished_boxes", String, queue_size=1)
 
         rospy.Timer(rospy.Duration(1.0), self.main_loop)
-        rospy.loginfo("FurthestBoxNavigator Initialization completed")
+        rospy.loginfo(f"FurthestBoxNavigator Initialization completed")
         rospy.spin()
 
     def enter_fallback_mode(self):
@@ -64,6 +66,7 @@ class FurthestBoxNavigator:
         rospy.loginfo("[Navigator] Recovered from fallback, returning to normal navigation.")
 
     def main_loop(self, event):
+        self.update_pose_from_tf()
         if not self.reach_goal:
             return
 
@@ -116,9 +119,9 @@ class FurthestBoxNavigator:
                     label_set.add(h["label"])
                 box_count += 1
 
-        if box_count >= 10 and len(label_set) >= 4:
+        if box_count >= 10 and len(label_set) >= 4 and not self.bridge_ready:
             rospy.loginfo("[Fallback] Box and label threshold met, approaching center to wait for bridge...")
-            return [11.0, 10.5, self.current_pose[2, 3]]
+            return [10.5, -11.0 , self.current_pose[2, 3]]
     
         x_vals = np.arange(self.x_range[0], self.x_range[1], self.fallback_grid_resolution)
         y_vals = np.arange(self.y_range[0], self.y_range[1], self.fallback_grid_resolution)
@@ -136,15 +139,37 @@ class FurthestBoxNavigator:
             occupied = (X >= xmin) & (X <= xmax) & (Y >= ymin) & (Y <= ymax)
             mask[occupied] = False
 
-        free_points = np.column_stack((X[mask], Y[mask]))
-        if len(free_points) == 0:
+        # free_points = np.column_stack((X[mask], Y[mask]))
+        # if len(free_points) == 0:
+        #     return None
+
+        # robot_pos = self.current_pose[:3, 3]
+        # dists = np.linalg.norm(free_points - robot_pos[:2], axis=1)
+        # fallback_point = free_points[np.argmax(dists)]
+
+        # return [fallback_point[0], fallback_point[1], robot_pos[2]]
+        labeled_mask, num_features = label(mask)
+
+        max_area = 0
+        max_label = -1
+        for i in range(1, num_features + 1):
+            area = np.sum(labeled_mask == i)
+            if area > max_area:
+                max_area = area
+                max_label = i
+
+        region_indices = np.argwhere(labeled_mask == max_label)
+        if len(region_indices) == 0:
+            rospy.logwarn("[Fallback] No valid connected free space found.")
             return None
 
-        robot_pos = self.current_pose[:3, 3]
-        dists = np.linalg.norm(free_points - robot_pos[:2], axis=1)
-        fallback_point = free_points[np.argmax(dists)]
+        center_index = np.mean(region_indices, axis=0)  # [row_idx, col_idx]
+        center_y = y_vals[int(round(center_index[0]))]
+        center_x = x_vals[int(round(center_index[1]))]
+        robot_z = self.current_pose[2, 3]
 
-        return [fallback_point[0], fallback_point[1], robot_pos[2]]
+        rospy.loginfo(f"[Fallback] Chosen center of largest free region at x={center_x:.2f}, y={center_y:.2f}")
+        return [center_x, center_y, 0.0]
 
     def fusion_info_callback(self, msg):
         try:
@@ -152,29 +177,52 @@ class FurthestBoxNavigator:
         except Exception as e:
             rospy.logwarn(f"[Fusion Info] Failed to parse: {e}")
 
-    def odom_callback(self, msg):
-        position = msg.pose.pose.position
-        orientation = msg.pose.pose.orientation
+    # def odom_callback(self, msg):
+    #     position = msg.pose.pose.position
+    #     orientation = msg.pose.pose.orientation
 
-        translation = np.array([position.x, position.y, position.z])
-        rotation = R.from_quat([orientation.x, orientation.y, orientation.z, orientation.w]).as_matrix()
+    #     translation = np.array([position.x, position.y, position.z])
+    #     rotation = R.from_quat([orientation.x, orientation.y, orientation.z, orientation.w]).as_matrix()
 
-        self.current_pose = np.eye(4)
-        self.current_pose[:3, :3] = rotation
-        self.current_pose[:3, 3] = translation
+    #     self.current_pose = np.eye(4)
+    #     self.current_pose[:3, :3] = rotation
+    #     self.current_pose[:3, 3] = translation
+
+    def update_pose_from_tf(self):
+        """Get transform from Baselink to map and update current_pose"""
+        try:
+            # Baselink to map transform
+            (trans, rot) = self.tf_listener.lookupTransform(
+                "map", "base_link", rospy.Time(0)
+            )
+            rotation_matrix = R.from_quat(rot).as_matrix()
+            translation = np.array(trans)
+
+            T_base_to_map = np.eye(4)
+            T_base_to_map[:3, :3] = rotation_matrix
+            T_base_to_map[:3, 3] = translation
+
+            self.current_pose = T_base_to_map
+            # rospy.loginfo(f"The current postion is {self.current_pose}")
+
+        except (
+            tf.LookupException,
+            tf.ConnectivityException,
+            tf.ExtrapolationException,
+        ):
+            rospy.logwarn("TF lookup failed")
 
     def bbox_callback(self, msg):
         self.has_received_bbox = True
         self.last_bbox = MarkerArray()
         unmatched_box_count = 0 
         label_set = set()
-        bridge_found = False
         
         for marker in msg.markers:
             marker_id = str(marker.id)
             if marker.ns != "box":
                 if marker.ns == "bridge":
-                    bridge_found = True
+                    self.bridge_found = True
                 continue
 
             marker_id = str(marker.id)
@@ -182,21 +230,22 @@ class FurthestBoxNavigator:
 
             if marker_id in self.fusion_info:
                 info = self.fusion_info[marker_id]
-                is_unmatched = not info.get("matched", False) 
-                if info.get("matched", True):
-                    for h in info.get("history", []):
-                        label_set.add(h["label"])
-                else:
-                    self.last_bbox.markers.append(marker)
-                
-                if is_unmatched:
-                    self.last_bbox.markers.append(marker)
-                    unmatched_box_count += 1
+                if marker.pose.position.x > 5.0:
+                    is_unmatched = not info.get("matched", False) 
+                    if info.get("matched", True):
+                        for h in info.get("history", []):
+                            label_set.add(h["label"])
+                    else:
+                        self.last_bbox.markers.append(marker)
+                    
+                    if is_unmatched:
+                        self.last_bbox.markers.append(marker)
+                        unmatched_box_count += 1
 
             else:
                 self.last_bbox.markers.append(marker)
         self.last_bbox_msg = self.last_bbox
-        self.try_publish_bridgehead_if_ready(msg, label_set, bridge_found)
+        self.try_publish_bridgehead_if_ready(msg, label_set, self.bridge_found)
         rospy.loginfo(f"[BBoxCallback] Unmatched boxes received: {unmatched_box_count}")
 
         if self.in_fallback_mode and any(m.ns == "box" for m in self.last_bbox.markers):
@@ -221,7 +270,7 @@ class FurthestBoxNavigator:
 
         for marker in msg.markers:
             if marker.ns == "box":
-                if marker.pose.position.y > 9:
+                if marker.pose.position.x > self.bridge_pos:
                     box_count += 1
                     
                 marker_id = str(marker.id)
@@ -288,7 +337,7 @@ class FurthestBoxNavigator:
         for marker in msg.markers:
             if marker.ns != "box":
                 continue
-            if marker.pose.position.y <= 9:
+            if marker.pose.position.x <= self.bridge_pos:
                 continue  
             
             box_pos = np.array([
@@ -381,7 +430,7 @@ class FurthestBoxNavigator:
         marker.color.g = 1.0
         marker.color.b = 0.0
         marker.color.a = 1.0
-        marker.lifetime = rospy.Duration(1.0)
+        marker.lifetime = rospy.Duration(0.0)
         self.marker_pub.publish(marker)
 
 if __name__ == "__main__":

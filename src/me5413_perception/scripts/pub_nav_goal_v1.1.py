@@ -33,10 +33,10 @@ class BridgeCrossingManager:
             self.navigator.publish_goal(self.navigator.target_box_position)
             return
 
-        # search_point = self.navigator.compute_exploration_point()
-        # rospy.loginfo("[BridgeCrossing] No target found, exploring at point {}.".format(search_point))
-        # self.navigator.publish_goal(search_point)
-        # self.navigator.wait_for_goal_or_detection()
+        search_point = self.navigator.compute_exploration_point()
+        rospy.loginfo("[BridgeCrossing] No target found, exploring at point {}.".format(search_point))
+        self.navigator.publish_goal(search_point)
+        self.navigator.wait_for_goal_or_detection()
 
         if self.navigator.target_box_found(post_bridge=True):
             rospy.loginfo("[BridgeCrossing] Target box found after exploration.")
@@ -87,13 +87,10 @@ class FurthestBoxNavigator:
         rospy.Subscriber("/perception/marker/bbox_markers_fusion", MarkerArray, self.bbox_callback)
         rospy.Subscriber("/perception/fusion_box_labels", String, self.fusion_info_callback)
         rospy.Subscriber("/one_rot/end_status", Bool, self.rot_end_callback)
-
-
         self.goal_pub = rospy.Publisher("/move_base_simple/goal", PoseStamped, queue_size=1)
         self.marker_pub = rospy.Publisher("/perception/marker/nav_goal_marker", Marker, queue_size=1)
         self.open_bridge_pub = rospy.Publisher("/cmd_open_bridge", Bool, queue_size=1)
 
-        rospy.Timer(rospy.Duration(1.0), self.update_pose_from_tf)
         rospy.loginfo("FurthestBoxNavigator Initialization completed")
         rospy.spin()
 
@@ -119,8 +116,8 @@ class FurthestBoxNavigator:
                             return True
         return False
 
-    # def compute_exploration_point(self):
-    #     return [self.post_bridge_position[0] - 1.0, self.post_bridge_position[1] - 1.0, self.post_bridge_position[2]]
+    def compute_exploration_point(self):
+        return [self.post_bridge_position[0] - 1.0, self.post_bridge_position[1] - 1.0, self.post_bridge_position[2]]
 
     def wait_for_goal_or_detection(self):
         rospy.sleep(3.0)
@@ -131,7 +128,7 @@ class FurthestBoxNavigator:
         scan_positions = [[4, -8, 0], [4, -16, 0]]
         for idx, position in enumerate(scan_positions):
             rospy.loginfo(f"[Scan] Navigating to scan position {idx+1}: {position}")
-            self.publish_goal(position, yaw_deg=180.0)
+            self.publish_goal(position)
             self.wait_for_goal_or_detection()
 
             if self.target_box_found(post_bridge=True):
@@ -179,7 +176,7 @@ class FurthestBoxNavigator:
 
 
     def bbox_callback(self, msg):
-
+        self.update_pose_from_tf()
         self.has_received_bbox = True
         self.last_bbox_msg = msg
         label_set = set()
@@ -276,67 +273,30 @@ class FurthestBoxNavigator:
             rospy.loginfo("[BridgeGoal] Publishing bridge goal.")
             self.exit_fallback_mode()
             self.last_goal_position = self.bridge_position
-            self.publish_goal(self.bridge_position, yaw_deg=180.0)
-            self.publish_arrow_marker(self.bridge_position, yaw_deg=180.0)
+            self.publish_goal(self.bridge_position, 180.0)
+            self.publish_arrow_marker(self.bridge_position, 180.0)
             self.bridge_goal_sent = True
             return True
         return False
 
-    # def find_and_publish_new_goal(self, msg):
-    #     max_dist = -1
-    #     furthest_box = None
-    #     for marker in msg.markers:
-    #         if marker.ns != "box" or marker.pose.position.x <= self.bridge_pos:
-    #             continue
-    #         dist = np.linalg.norm(np.array([marker.pose.position.x,
-    #                                         marker.pose.position.y]) - self.current_pose[:2, 3])
-    #         if dist > max_dist:
-    #             max_dist = dist
-    #             furthest_box = marker.pose.position
-
-    #     if furthest_box:
-    #         pos = [furthest_box.x, furthest_box.y, furthest_box.z]
-    #         self.publish_goal(pos)
-    #         self.publish_arrow_marker(pos)
-    #         return pos
-
     def find_and_publish_new_goal(self, msg):
-        if self.bridge_ready and self.bridge_position and not self.bridge_goal_sent:
-            rospy.loginfo("[Navigator] Conditions met, jumping to bridge goal!")
-            self.last_goal_position = self.bridge_position
-            self.publish_goal(self.bridge_position)
-            self.publish_arrow_marker(self.bridge_position)
-            self.bridge_goal_sent = True
-            return self.last_goal_position
-        
-        max_distance = -1
-        furthest_box_position = None
-
+        max_dist = -1
+        furthest_box = None
         for marker in msg.markers:
-            if marker.ns != "box":
+            if marker.ns != "box" or marker.pose.position.x <= self.bridge_pos:
                 continue
-            if marker.pose.position.x <= self.bridge_pos:
-                continue  
-            
-            box_pos = np.array([
-                marker.pose.position.x,
-                marker.pose.position.y,
-                marker.pose.position.z
-            ])
+            dist = np.linalg.norm(np.array([marker.pose.position.x,
+                                            marker.pose.position.y]) - self.current_pose[:2, 3])
+            if dist > max_dist:
+                max_dist = dist
+                furthest_box = marker.pose.position
 
-            robot_pos = self.current_pose[:3, 3]
-            distance = np.linalg.norm(box_pos - robot_pos)
+        if furthest_box:
+            pos = [furthest_box.x, furthest_box.y, furthest_box.z]
+            self.publish_goal(pos)
+            self.publish_arrow_marker(pos)
+            return pos
 
-            if distance > max_distance:
-                max_distance = distance
-                furthest_box_position = box_pos
-
-        if furthest_box_position is not None:
-            self.last_goal_position = furthest_box_position
-            self.publish_goal(furthest_box_position)
-            self.publish_arrow_marker(furthest_box_position)
-            return furthest_box_position
-        
     def find_fallback_goal(self):
         x_vals = np.arange(self.x_range[0], self.x_range[1], self.fallback_grid_resolution)
         y_vals = np.arange(self.y_range[0], self.y_range[1], self.fallback_grid_resolution)

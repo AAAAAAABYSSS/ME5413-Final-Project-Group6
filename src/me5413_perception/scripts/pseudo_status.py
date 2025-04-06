@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Olny publish /move_base/status
 import tf
 import rospy
 import numpy as np
@@ -16,13 +17,14 @@ class PseudoStatus:
         self.current_pose = np.eye(4)
         self.goal_marker = None  # Store nav_goal_marker
         self.goal_received = False  # Whether a goal has been received
+        self.goal_reached_once = False 
 
         # Subscriptions
         rospy.Subscriber("/perception/marker/nav_goal_marker", Marker, self.goal_callback)
         # rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
 
         # Publish simulated move_base/status
-        self.status_pub = rospy.Publisher("/move_base/status", Bool, queue_size=1)
+        self.status_pub = rospy.Publisher("/move_status", Bool, queue_size=1)
 
 
         rospy.loginfo("PseudoStatus started.")
@@ -34,6 +36,7 @@ class PseudoStatus:
     def goal_callback(self, marker):
         self.goal_marker = marker
         self.goal_received = True
+        self.goal_reached_once = False  
 
     # def odom_callback(self, msg):
     #     pos = msg.pose.pose.position
@@ -81,11 +84,16 @@ class PseudoStatus:
                 rospy.loginfo_throttle(1, f"Distance to goal: {dist:.2f} {pt_goal} {self.current_pose[:3, 3]}")
 
                 if dist <= self.min_dist:
-                    self.status_pub.publish(Bool(data=True))
-                    rospy.loginfo("Goal reached: True")
+                    if not self.goal_reached_once:
+                        self.status_pub.publish(Bool(data=True))
+                        rospy.loginfo("Goal reached: True (published once)")
+                        self.goal_reached_once = True  
+                    else:
+                        rospy.loginfo_throttle(5, "Goal already reached, not publishing again")
                 else:
                     self.status_pub.publish(Bool(data=False))
                     rospy.loginfo("Goal not reached: False")
+
             else:
                 rospy.logwarn_throttle(5, "Waiting for odometry...")
 

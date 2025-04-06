@@ -259,8 +259,51 @@ class ClusterProcessor:
             else:
                 # No qualified box is close enough → keep this bbox (regarded as the new target)
                 qualified_bboxes.append(bbox)
+                qualified_bboxes = self.filter_colliding_bboxes(qualified_bboxes)
 
         return bridge_bboxes + qualified_bboxes
+
+    # Filter out the colliding bboxes.
+    # Keep the content of the bbox with the larger id, but replace its id with 
+    # the deleted smaller id. Finally, only keep the updated bbox (new content, old id).
+    def filter_colliding_bboxes(self, bboxes):
+        filtered = bboxes.copy()
+        id_to_bbox = {b["id"]: b.copy() for b in filtered}
+        processed_ids = set()
+        new_bboxes = {}
+
+        ids = sorted(id_to_bbox.keys())
+        for i in range(len(ids)):
+            id1 = ids[i]
+            if id1 in processed_ids:
+                continue
+            box1 = id_to_bbox[id1]
+
+            for j in range(i + 1, len(ids)):
+                id2 = ids[j]
+                if id2 in processed_ids:
+                    continue
+                box2 = id_to_bbox[id2]
+
+                iou = self.calculate_iou(box1, box2)
+                if iou > 0:
+                    # Keep the content of the box with a larger id and replace it with a box with a smaller id
+                    keep_box = box1 if id1 > id2 else box2
+                    keep_id = min(id1, id2)
+
+                    new_box = keep_box.copy()
+                    new_box["id"] = keep_id
+                    new_bboxes[keep_id] = new_box
+
+                    # Mark the two original ids as processed
+                    processed_ids.update({id1, id2})
+                    break
+            else:
+                # The current bbox has no conflict, so keep it as is
+                new_bboxes[id1] = box1
+                processed_ids.add(id1)
+
+        return list(new_bboxes.values())
 
     def publish_markers(self):
         marker_array = MarkerArray()

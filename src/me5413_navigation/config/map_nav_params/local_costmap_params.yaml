@@ -11,6 +11,6 @@ local_costmap:
 
    # added
    inflater_layer:
-      cost_scaling_factor: 2 #4 #3 #1 #2
+      cost_scaling_factor: 2
       # inflation_radius: 1.5
-      inflation_radius: 0.3 #0.25 #0.27 #0.3
+      inflation_radius: 0.3

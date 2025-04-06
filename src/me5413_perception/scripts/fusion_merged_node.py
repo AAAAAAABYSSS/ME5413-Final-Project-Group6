@@ -30,7 +30,7 @@ class FusionMergedNode:
         self.sub_bbox = rospy.Subscriber("/perception/marker/bbox_markers", MarkerArray, self.bbox_callback)
 
         self.pub_marker_fusion = rospy.Publisher("/perception/marker/bbox_markers_fusion", MarkerArray, queue_size=1)
-        self.pub_fusion_info = rospy.Publisher("/perception/fusion_box_labels", String, queue_size=1)  # 非 MarkerArray
+        self.pub_fusion_info = rospy.Publisher("/perception/fusion_box_labels", String, queue_size=1)  
     
     def yolo_callback(self, msg):
         try:
@@ -46,65 +46,81 @@ class FusionMergedNode:
             box_info_output = {}
 
             for marker in msg.markers:
-                center = marker.pose.position
-                extent = marker.scale
+                if marker.ns == "box":
+                    center = marker.pose.position
+                    extent = marker.scale
 
-                size_x = extent.x * self.box_big_size / 2.0
-                size_y = extent.y * self.box_big_size / 2.0
-                size_z = extent.z * self.box_big_size / 2.0
+                    size_x = extent.x * self.box_big_size / 2.0
+                    size_y = extent.y * self.box_big_size / 2.0
+                    size_z = extent.z * self.box_big_size / 2.0
 
-                min_bound = [center.x - size_x, center.y - size_y, center.z - size_z]
-                max_bound = [center.x + size_x, center.y + size_y, center.z + size_z]
-                
-                matched = False
-                for target in self.yolo_targets:
-                    total_pts = len(target["points_map"])
-                    if total_pts == 0:
-                        continue
+                    min_bound = [center.x - size_x, center.y - size_y, center.z - size_z]
+                    max_bound = [center.x + size_x, center.y + size_y, center.z + size_z]
+                    
+                    matched = False
+                    for target in self.yolo_targets:
+                        total_pts = len(target["points_map"])
+                        if total_pts == 0:
+                            continue
 
-                    inside = sum(
-                        1 for pt in target["points_map"]
-                        if min_bound[0] <= pt["x"] <= max_bound[0] and
-                        min_bound[1] <= pt["y"] <= max_bound[1] and
-                        min_bound[2] <= pt["z"] <= max_bound[2]
-                    )
+                        inside = sum(
+                            1 for pt in target["points_map"]
+                            if min_bound[0] <= pt["x"] <= max_bound[0] and
+                            min_bound[1] <= pt["y"] <= max_bound[1] and
+                            min_bound[2] <= pt["z"] <= max_bound[2]
+                        )
 
-                    if inside / total_pts >= self.point_inside_ratio_threshold:
-                        self.history_labels[marker.id].append({
-                            "label": target["label"],
-                            "conf": target["conf"],
-                        })
-                        matched = True
+                        if inside / total_pts >= self.point_inside_ratio_threshold:
+                            self.history_labels[marker.id].append({
+                                "label": target["label"],
+                                "conf": target["conf"],
+                            })
+                            matched = True
 
 
-                if len(self.history_labels[marker.id]) > self.max_history:
-                    self.history_labels[marker.id] = self.history_labels[marker.id][-self.max_history:]
-                
-                if marker.id not in self.match_state:
-                    self.match_state[marker.id] = False
+                    if len(self.history_labels[marker.id]) > self.max_history:
+                        self.history_labels[marker.id] = self.history_labels[marker.id][-self.max_history:]
+                    
+                    if marker.id not in self.match_state:
+                        self.match_state[marker.id] = False
 
-                if matched:
-                    self.match_state[marker.id] = True  
+                    if matched:
+                        self.match_state[marker.id] = True  
 
-                final_matched = self.match_state[marker.id]  
+                    final_matched = self.match_state[marker.id]  
 
-                marker_copy = Marker()
-                marker_copy.header = Header(frame_id="map", stamp=rospy.Time.now())
-                marker_copy.ns = marker.ns
-                marker_copy.id = marker.id
-                marker_copy.type = Marker.CUBE
-                marker_copy.action = Marker.ADD
-                marker_copy.pose = marker.pose
-                marker_copy.scale = marker.scale
-                marker_copy.lifetime = rospy.Duration(1.0)
-                marker_out.markers.append(marker_copy)
+                    marker_copy = Marker()
+                    marker_copy.header = Header(frame_id="map", stamp=rospy.Time.now())
+                    marker_copy.ns = marker.ns
+                    marker_copy.id = marker.id
+                    marker_copy.type = Marker.CUBE
+                    marker_copy.action = Marker.ADD
+                    marker_copy.pose = marker.pose
+                    marker_copy.scale = marker.scale
+                    marker_copy.lifetime = rospy.Duration(1.0)
+                    marker_out.markers.append(marker_copy)
 
-                box_info_output[str(marker.id)] = {
-                    "matched": final_matched,
-                    "history": self.history_labels[marker.id]
-                }
-
+                    box_info_output[str(marker.id)] = {
+                        "matched": final_matched,
+                        "history": self.history_labels[marker.id]
+                    }
+                elif marker.ns == "bridge":
+                    marker_copy = Marker()
+                    marker_copy.header = Header(frame_id="map", stamp=rospy.Time.now())
+                    marker_copy.ns = marker.ns
+                    marker_copy.id = marker.id
+                    marker_copy.type = Marker.CUBE
+                    marker_copy.action = Marker.ADD
+                    marker_copy.pose = marker.pose
+                    marker_copy.scale = marker.scale
+                    marker_copy.lifetime = rospy.Duration(1.0)
+                    marker_out.markers.append(marker_copy)
+                    # box_info_output[str(marker.id)] = {
+                    #     "matched": True,
+                    #     "history": ""
+                    # }
             self.pub_marker_fusion.publish(marker_out)
+            
             self.pub_fusion_info.publish(json.dumps(box_info_output))
 
 

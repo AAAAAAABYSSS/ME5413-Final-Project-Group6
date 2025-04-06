@@ -1,0 +1,7 @@
+<launch>
+
+  <rosparam file="$(find me5413_evaluation)/config/evaluation.yaml" command="load" />
+
+  <node pkg="me5413_evaluation" type="bbox_evaluation.py" name="bbox_evaluation" output="screen" respawn="true" />
+
+</launch>

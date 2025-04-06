@@ -230,6 +230,7 @@ class PointCloudClustering:
             if (
                 center[0] >= self.bridge_x_range[0]
                 and center[0] <= self.bridge_x_range[1]
+                and center[1] <= self.roi_y[1] - self.eligible_offset
             ):
                 obj_type = "bridge"
             # Classify objects based on extent and exclude wall errors

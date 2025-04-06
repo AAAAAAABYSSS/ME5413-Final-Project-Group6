@@ -28,7 +28,7 @@
   <!-- <include file="$(find jackal_navigation)/launch/imu_filter.launch" /> -->
 
   <!-- EKF localization -->
-  <!-- <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization" output="screen">
+  <!-- <node pkg="robot_localization" type="" name="ekf_localization" output="screen">
     <param name="imu0" value="/imu/data/bias_filtered"/>
   </node> -->
 

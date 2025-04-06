@@ -1,129 +1,175 @@
 #!/usr/bin/env python
+
 import rospy
 import tf
 import math
+import numpy as np
 import actionlib
-from tf.transformations import euler_from_quaternion
+from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from geometry_msgs.msg import PoseStamped, Twist
-from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal, MoveBaseActionResult
-from std_msgs.msg import Bool, Float32MultiArray
-from actionlib_msgs.msg import GoalStatus
+from tf.transformations import euler_from_quaternion
+from std_msgs.msg import Bool
 
-class JackalAutoRotNav:
+class NavigationSuccessChecker:
     def __init__(self):
+        # Initialize the ROS node
         rospy.init_node('jackal_auto_rot_nav')
 
-        self.pause_time = rospy.get_param('~pause_duration', 1.0)
-        self.goal_sent = False
-        self.awaiting_rotation = False
+        # Initialize the variables
+        self.previous_position = None
+        self.previous_orientation = None
+        self.similarity_count = 0
+        self.rot_end_status = False
+        self.move_curr_status = False
+        
+        # Set the thresholds
+        self.position_threshold = 0.01  # position difference threshold in meters
+        self.orientation_threshold = 0.01  # orientation difference threshold in radians
+        self.max_similarity_count = 20  # Number of similar frames required to trigger success
+        
+        # Publisher for cmd_vel to control the robot's movement
+        self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+        self.rot_end_pub = rospy.Publisher('/one_rot/end_status', Bool, queue_size=10)
+        self.move_curr_pub = rospy.Publisher('/move_status', Bool, queue_size=10)
 
-        self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=20)
-        self.finish_pub = rospy.Publisher('/one_rot/finish_status', Bool, queue_size=5)
-        self.end_pub = rospy.Publisher('/one_rot/end_status', Bool, queue_size=5)
-        self.goal_pub = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=5)
-
-        rospy.Subscriber('/one_rot/unfinished_boxes', Float32MultiArray, self.unfinished_callback)
-        rospy.Subscriber('/move_base/result', MoveBaseActionResult, self.nav_result_callback)
-        rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.goal_callback)
-
+        # Subscribe to the tf topic to get the robot's pose
         self.listener = tf.TransformListener()
-        self.move_base_client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
-        rospy.loginfo("📦 等待 move_base server...")
-        self.move_base_client.wait_for_server()
-        rospy.loginfo("✅ move_base 已连接")
+        
+        rospy.loginfo("Navigation Success Checker initialized.")
+        
+    def check_navigation_success(self):
+        # Continuously check for the robot's position and orientation
+        try:
+            # Get the current pose of the robot from tf
+            (trans, rot) = self.listener.lookupTransform('map', 'base_link', rospy.Time(0))
 
-        rospy.sleep(2.0)  # 延时等待 TF 和初始定位稳定
-        self.send_initial_goal()
+            # Calculate the position and orientation
+            current_position = trans
+            current_orientation = rot
 
-    def send_initial_goal(self):
-        goal = PoseStamped()
-        goal.header.frame_id = "map"
-        while rospy.Time.now().to_sec() == 0:
-            rospy.loginfo("⏳ 等待仿真时间启动...")
-            rospy.sleep(0.1)
-        goal.header.stamp = rospy.Time.now()
-        goal.pose.position.x = 21.16
-        goal.pose.position.y = -22.14
-        goal.pose.orientation.z = 0.98
-        goal.pose.orientation.w = 0.20
+            if any(current_position) <= 0.1 and any(current_orientation) <= 0.1:
+                self.move_curr_pub.publish(Bool(data=True))
 
-        rospy.loginfo("🚀 发布初始导航目标到 /move_base_simple/goal")
-        self.goal_pub.publish(goal)
+            if self.previous_position is not None and self.previous_orientation is not None:
+                # Calculate the Euclidean distance between the current and previous position
+                position_diff = math.sqrt((current_position[0] - self.previous_position[0]) ** 2 +
+                                         (current_position[1] - self.previous_position[1]) ** 2)
+                # Convert quaternion to euler angles to calculate the orientation difference
+                current_euler = euler_from_quaternion(current_orientation)
+                previous_euler = euler_from_quaternion(self.previous_orientation)
+                orientation_diff = abs(current_euler[2] - previous_euler[2])  # Only check the Z-axis orientation
 
-    def goal_callback(self, msg):
-        rospy.loginfo("🎯 接收到目标点（来自 /move_base_simple/goal）")
-        goal = MoveBaseGoal()
-        goal.target_pose.header = msg.header
-        goal.target_pose.pose = msg.pose
-        self.move_base_client.send_goal(goal)
-        self.goal_sent = True
+                # Check if the position and orientation differences are below the thresholds
+                if position_diff < self.position_threshold and orientation_diff < self.orientation_threshold:
+                    self.similarity_count += 1
+                else:
+                    # Reset the similarity count if the movement is not similar enough
+                    self.similarity_count = 0
+                    # Target not reached, ensure flag is False
+                    self.move_curr_status = False
 
-    def nav_result_callback(self, msg):
-        rospy.loginfo("📬 move_base 结果: 状态 %s", msg.status.status)
-        if msg.status.status == GoalStatus.SUCCEEDED:
-            rospy.loginfo("✅ 导航完成，开始旋转")
-            self.goal_sent = False
-            self.rotate_full_circle()
+                # If the required number of similar frames is met, declare navigation success
+                rospy.loginfo(f"Similarity count: {self.similarity_count}")
+                if self.similarity_count >= self.max_similarity_count:
+                    rospy.loginfo("Navigation Success: Goal reached!")
+                    self.move_curr_pub.publish(Bool(data=True))
+                    self.move_curr_status = False    # 马上重置状态
+                    self.cancel_navigation_goal()
+                    # Start rotating 360 degrees after goal is reached
+                    self.rotate_360()
+                    # Reset the counter after success
+                    self.similarity_count = 0
+                else:
+                    self.move_curr_pub.publish(Bool(data=False))
 
-    def rotate_full_circle(self):
-        rospy.loginfo("🔁 开始原地旋转一圈")
-        twist = Twist()
-        twist.angular.z = 0.5
-        rotate_time = 2 * math.pi / abs(twist.angular.z)
-        rate = rospy.Rate(10)
-        start_time = rospy.Time.now()
-        while rospy.Time.now() - start_time < rospy.Duration(rotate_time):
-            self.cmd_vel_pub.publish(twist)
-            rate.sleep()
-        self.cmd_vel_pub.publish(Twist())
-        rospy.sleep(0.5)
-        rospy.loginfo("✅ 原地旋转完成，发布 /one_rot/finish_status")
-        self.finish_pub.publish(Bool(data=True))
-        self.awaiting_rotation = True
+            # Update the previous position and orientation
+            self.previous_position = current_position
+            self.previous_orientation = current_orientation
 
-    def unfinished_callback(self, msg):
-        if not self.awaiting_rotation:
-            return
-        rospy.loginfo("📐 补旋角度：%s", str(msg.data))
-        for angle in msg.data:
-            self.rotate_to_angle(angle)
-            rospy.sleep(self.pause_time)
-        rospy.loginfo("✅ 补角完成，发布 /one_rot/end_status")
-        self.end_pub.publish(Bool(data=True))
-        self.awaiting_rotation = False
+            # Always publish the current rot_end_status
+            self.rot_end_pub.publish(Bool(data=self.rot_end_status))
+            self.rot_end_status = False  # Reset to False after one-time True publish
+            # rospy.loginfo(f"self.move_curr_status: {self.move_curr_status}")
+            # self.move_curr_pub.publish(Bool(data=self.move_curr_status))
+            self.move_curr_pub.publish(Bool(data=False))
 
-    def rotate_to_angle(self, yaw_target_deg):
-        target_yaw_rad = math.radians(yaw_target_deg)
-        tolerance = 0.05
-        rate = rospy.Rate(10)
-        twist = Twist()
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            rospy.logwarn("TF exception, unable to get the current pose.")
 
+    def rotate_360(self):
+        rospy.loginfo("Starting 360-degree rotation...")
+
+        rotate_cmd = Twist()
+        rotate_cmd.angular.z = 0.7 # 0.5  # Positive means counter-clockwise rotation
+
+        self.rot_end_status = False  # Reset before rotation
+        self.rot_end_pub.publish(Bool(data=False))  # Actively publish reset
+        self.move_curr_pub.publish(Bool(data=False))
+
+        # Get initial yaw angle
+        (_, rot) = self.listener.lookupTransform('map', 'base_link', rospy.Time(0))
+        last_yaw = euler_from_quaternion(rot)[2]
+
+        total_rotation = 0.0
+
+        rate = rospy.Rate(20)  # Higher rate for smoother calculation
         while not rospy.is_shutdown():
             try:
-                self.listener.waitForTransform("/map", "/base_link", rospy.Time(0), rospy.Duration(1.0))
-                (_, rot) = self.listener.lookupTransform('/map', '/base_link', rospy.Time(0))
-                _, _, current_yaw = euler_from_quaternion(rot)
-                yaw_error = self.normalize_angle(target_yaw_rad - current_yaw)
-                if abs(yaw_error) < tolerance:
-                    break
-                twist.angular.z = 0.4 if yaw_error > 0 else -0.4
-                self.cmd_vel_pub.publish(twist)
-            except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
-                rospy.logwarn("⚠️ TF 错误：%s", str(e))
-                break
-            rate.sleep()
-        self.cmd_vel_pub.publish(Twist())
+                (_, rot) = self.listener.lookupTransform('map', 'base_link', rospy.Time(0))
+                current_yaw = euler_from_quaternion(rot)[2]
 
-    def normalize_angle(self, angle):
-        while angle > math.pi:
-            angle -= 2 * math.pi
-        while angle < -math.pi:
-            angle += 2 * math.pi
-        return angle
+                # Calculate delta yaw and normalize to [-pi, pi]
+                delta_yaw = current_yaw - last_yaw
+                if delta_yaw > math.pi:
+                    delta_yaw -= 2 * math.pi
+                elif delta_yaw < -math.pi:
+                    delta_yaw += 2 * math.pi
+
+                total_rotation += abs(delta_yaw)
+                last_yaw = current_yaw
+
+                rospy.loginfo(f"Accumulated rotation: {math.degrees(total_rotation):.2f} degrees")
+
+                if total_rotation >= 2 * math.pi - 0.1:  # Allow some margin (≈6.18 rad)
+                    rospy.loginfo("Rotation complete.")
+                    self.cmd_vel_pub.publish(Twist())  # Stop the robot
+                    # Set rotation end status to True and publish it
+                    self.rot_end_status = True
+                    self.rot_end_pub.publish(Bool(data=True))
+                    break
+                else:
+                    self.cmd_vel_pub.publish(rotate_cmd)
+
+                rate.sleep()
+                self.move_curr_pub.publish(Bool(data=False))
+
+            except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+                rospy.logwarn("TF exception during rotation.")
+                self.cmd_vel_pub.publish(rotate_cmd)
+                rate.sleep()
+
+    def cancel_navigation_goal(self):
+        # Create a SimpleActionClient and connect to the ActionServer of move_base
+        client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
+        
+        # Waiting for connection
+        rospy.loginfo("Waiting for move_base action server to start...")
+        client.wait_for_server()
+
+        # Publish a request to cancel all navigation target
+        rospy.loginfo("Canceling current navigation goal.")
+        client.cancel_all_goals()
+
 
 if __name__ == '__main__':
     try:
-        JackalAutoRotNav()
-        rospy.spin()
+        # Create the NavigationSuccessChecker object
+        checker = NavigationSuccessChecker()
+
+        # Run the check_navigation_success function at a fixed rate
+        rate = rospy.Rate(10)  # 10 Hz
+        while not rospy.is_shutdown():
+            checker.check_navigation_success()
+            rate.sleep()
     except rospy.ROSInterruptException:
         pass

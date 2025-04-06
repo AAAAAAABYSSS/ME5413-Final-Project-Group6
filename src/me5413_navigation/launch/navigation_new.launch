@@ -13,16 +13,15 @@
 
   <!-- Launch Move Base -->
   <include file="$(find me5413_navigation)/launch/include/move_base_new.launch">
-    <arg name="global_planner" default="rrt" />
+    <arg name="global_planner" default="dstar" />
   <!-- local planner name -->
-  <arg name="local_planner" default="mpc" />
+  <arg name="local_planner" default="teb" />
   </include>
+  <node pkg="me5413_navigation" type="jackal_auto_nav.py" name="jackal_auto_rot_nav" output="screen" respawn="true" />
 
   <!-- <rosparam file="$(find me5413_navigation)/config/base_local_planner_params.yaml" command="load" />
   <rosparam file="$(find me5413_navigation)/config/costmap_common_params.yaml" command="load" /> -->
 
-  <!-- Launch laser merger -->
-  <include file="$(find ira_laser_tools)/launch/laserscan_multi_merger.launch" />
 
   <!-- Launch IMU filter -->
   <!-- <include file="$(find me5413_navigation)/launch/imu_filter.launch" /> -->
