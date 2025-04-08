@@ -4,22 +4,38 @@
   <!-- <node name="teleop_twist_keyboard" pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py" output="screen" respawn="true"/> -->
 
   <!-- Run the map server -->
-  <arg name="map_file" default="$(find me5413_world)/maps/nav_carto_3d_cleaned.yaml"/>
-  <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
+  <!-- <arg name="map_file" default="$(find me5413_world)/maps/nav_carto_3d_cleaned.yaml"/>
+  <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" /> -->
   
-  <!-- Launch the AMCL Localizer -->
-  <include file="$(find me5413_navigation)/launch/include/amcl.launch">
-  </include>
+  <!-- Launch the Localizer -->
+  <arg name="localization_method" default="amcl" />  <!-- amcl / ndt -->
+  <arg name="map_yaml" default="$(find me5413_world)/maps/nav_carto_3d_cleaned.yaml" />
+  <arg name="map_pcd"  default="$(find me5413_world)/maps/nav_carto_3d_cleaned.pcd" />
+
+    <!-- ========== AMCL Path ========== -->
+    <group if="$(eval localization_method == 'amcl')">
+      <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_yaml)" />
+      <include file="$(find me5413_navigation)/launch/include/amcl.launch"/>
+    </group>
+
+    <!-- ========== NDT Path ========== -->
+    <group if="$(eval localization_method == 'ndt')">
+      <include file="$(find me5413_navigation)/launch/include/ndt.launch">
+      </include>
+    </group>
+
+  <!-- <include file="$(find me5413_navigation)/launch/include/amcl.launch"> -->
+  <!-- <include file="$(find me5413_navigation)/launch/include/ndt.launch">
+  </include> -->
 
   <!-- Launch Move Base -->
   <include file="$(find me5413_navigation)/launch/include/move_base_new.launch">
   <include file="$(find me5413_evaluation)/launch/evo_evaluation.launch" />
-
     <arg name="global_planner" default="dstar" />
   <!-- local planner name -->
   <arg name="local_planner" default="teb" />
   </include>
-  <!-- <node pkg="me5413_navigation" type="jackal_auto_nav.py" name="jackal_auto_rot_nav" output="screen" respawn="true" /> -->
+  <node pkg="me5413_navigation" type="jackal_auto_nav.py" name="jackal_auto_rot_nav" output="screen" respawn="true" />
 
   <!-- <rosparam file="$(find me5413_navigation)/config/base_local_planner_params.yaml" command="load" />
   <rosparam file="$(find me5413_navigation)/config/costmap_common_params.yaml" command="load" /> -->

@@ -101,6 +101,7 @@ class FusionMergedNode:
                     marker_out.markers.append(marker_copy)
 
                     box_info_output[str(marker.id)] = {
+                        "type": "box",
                         "matched": final_matched,
                         "history": self.history_labels[marker.id]
                     }
@@ -115,10 +116,11 @@ class FusionMergedNode:
                     marker_copy.scale = marker.scale
                     marker_copy.lifetime = rospy.Duration(1.0)
                     marker_out.markers.append(marker_copy)
-                    # box_info_output[str(marker.id)] = {
-                    #     "matched": True,
-                    #     "history": ""
-                    # }
+                    box_info_output[str(marker.id)] = {
+                        "type": "bridge",
+                        "matched": None,
+                        "history": ""
+                    }
             self.pub_marker_fusion.publish(marker_out)
             
             self.pub_fusion_info.publish(json.dumps(box_info_output))

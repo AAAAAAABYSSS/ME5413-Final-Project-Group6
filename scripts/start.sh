@@ -17,7 +17,7 @@ gnome-terminal --tab -- bash -c "catkin_make -j4; source devel/setup.bash; rosla
 sleep 10
 
 # Define options
-options=("Manual Control Only" "Mapping Mode" "Navigation Mode" "Perception Mode" "Exit")
+options=("Manual Control Only" "Mapping Mode" "New Navigation Mode" "Old Navigation Mode" "Perception Mode" "Exit")
 
 echo ""
 echo "========= Mode Selection ========="
@@ -39,16 +39,20 @@ case $choice in
         gnome-terminal --tab -- bash -c "source devel/setup.bash; roslaunch me5413_mapping livo2.launch; exec bash"
         ;;
     2)
-        echo "Launching navigation mode..."
+        echo "Launching old navigation mode..."
         gnome-terminal --tab -- bash -c "source devel/setup.bash; roslaunch me5413_perception me5413_perception.launch; exec bash"
-        # gnome-terminal --tab -- bash -c "source devel/setup.bash; source src/me5413_thirdparty/ros_motion_planning/devel/setup.bash; roslaunch me5413_navigation navigation_new.launch ; exec bash"
-        gnome-terminal --tab -- bash -c "source devel/setup.bash; roslaunch me5413_navigation navigation_old.launch ; exec bash"
+        gnome-terminal --tab -- bash -c "source devel/setup.bash; source src/me5413_thirdparty/ros_motion_planning/devel/setup.bash; roslaunch me5413_navigation navigation_new.launch ; exec bash"
         ;;
     3)
+        echo "Launching new navigation mode..."
+        gnome-terminal --tab -- bash -c "source devel/setup.bash; roslaunch me5413_perception me5413_perception.launch; exec bash"
+        gnome-terminal --tab -- bash -c "source devel/setup.bash; roslaunch me5413_navigation navigation_old.launch ; exec bash"
+        ;;
+    4)
         echo "Launching perception mode..."
         gnome-terminal --tab -- bash -c "source devel/setup.bash; roslaunch me5413_perception me5413_perception.launch; exec bash"
         ;;
-    4)
+    5)
         echo "Exiting script."
         exit 0
         ;;

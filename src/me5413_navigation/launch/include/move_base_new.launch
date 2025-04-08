@@ -75,12 +75,11 @@
         <rosparam file="$(find me5413_navigation)/config/controller/orca_controller_params.yaml" command="load" if="$(eval arg('local_planner')=='orca')" /> -->
 
 
-
       <rosparam file="$(find me5413_navigation)/config/costmap_common_params.yaml" command="load" ns="global_costmap" />
       <rosparam file="$(find me5413_navigation)/config/costmap_common_params.yaml" command="load" ns="local_costmap" />
       
       <rosparam file="$(find me5413_navigation)/config/map_nav_params/local_costmap_params.yaml" command="load" />
-      <rosparam file="$(find me5413_navigation)/config/map_nav_params/global_costmap_params.yaml" command="load" />
+      <rosparam file="$(find me5413_navigation)/config/map_nav_params/global_costmap_param_teb.yaml" command="load" />
       
       
       <rosparam file="$(find me5413_navigation)/config/base_local_planner_params.yaml" command="load" /> 

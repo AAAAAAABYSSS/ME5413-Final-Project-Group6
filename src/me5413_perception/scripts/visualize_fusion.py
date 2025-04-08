@@ -170,7 +170,7 @@ class FusionVisualizer:
                             text_marker.color.g = 1.0
                             text_marker.color.b = 1.0
                             text_marker.color.a = 1.0
-                            text_marker.text = f"{best_label}: {round(best_conf, 2)}"
+                            text_marker.text = f" id{marker.id}-{best_label}: {round(best_conf, 2)}"
                             text_marker.lifetime = rospy.Duration(1.0)
 
                             visual_out.markers.append(text_marker)

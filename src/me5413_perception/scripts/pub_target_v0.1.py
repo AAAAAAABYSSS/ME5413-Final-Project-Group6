@@ -255,7 +255,6 @@ class ClusterProcessor:
                 )
                 # If there is a qualified box very close, ignore this small bbox
                 if center_dist <= self.delete_radius:
-                    base_bbox["id"] = base_bbox["id"] if base_bbox["id"] < bbox["id"] else bbox["id"]
                     break
             else:
                 # No qualified box is close enough → keep this bbox (regarded as the new target)
@@ -309,7 +308,6 @@ class ClusterProcessor:
     def publish_markers(self):
         marker_array = MarkerArray()
         for detection in self.all_bbox:
-            # ---- CUBE Marker ----
             marker = Marker()
             marker.header.frame_id = "map"
             marker.header.stamp = rospy.Time.now()
@@ -350,33 +348,6 @@ class ClusterProcessor:
 
             marker.lifetime = rospy.Duration(0.5)
             marker_array.markers.append(marker)
-
-            # ---- TEXT Marker for ID ----
-            text_marker = Marker()
-            text_marker.header.frame_id = "map"
-            text_marker.header.stamp = rospy.Time.now()
-            text_marker.ns = detection["type"] + "_id"
-            text_marker.id = detection["id"] + 10000  # Make sure IDs are unique
-
-            text_marker.type = Marker.TEXT_VIEW_FACING
-            text_marker.action = Marker.ADD
-
-            # Place it slightly above the cube
-            text_marker.pose.position.x = detection["center"][0]
-            text_marker.pose.position.y = detection["center"][1]
-            text_marker.pose.position.z = detection["center"][2] + detection["extent"][2] / 2.0 + 0.1
-            text_marker.pose.orientation.w = 1.0
-
-            text_marker.scale.z = 0.2  # Text size
-
-            text_marker.color.r = 1.0
-            text_marker.color.g = 1.0
-            text_marker.color.b = 1.0
-            text_marker.color.a = 1.0
-
-            text_marker.text = f"ID: {detection['id']}"
-            text_marker.lifetime = rospy.Duration(0.5)
-            marker_array.markers.append(text_marker)
 
         self.marker_pub.publish(marker_array)
         self.latest_bbox_markers = marker_array

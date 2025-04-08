@@ -19,8 +19,8 @@
 
   <!-- Launch laser merger -->
   <!-- <include file="$(find ira_laser_tools)/launch/laserscan_multi_merger.launch" /> -->
-  <!-- <include file="$(find me5413_evaluation)/launch/evo_evaluation.launch" /> -->
-  <!-- <node pkg="me5413_navigation" type="jackal_auto_nav.py" name="jackal_auto_rot_nav" output="screen" respawn="true" /> -->
+  <include file="$(find me5413_evaluation)/launch/evo_evaluation.launch" />
+  <node pkg="me5413_navigation" type="jackal_auto_nav.py" name="jackal_auto_rot_nav" output="screen" respawn="true" />
   <!-- Launch IMU filter -->
   <!-- <include file="$(find me5413_navigation)/launch/imu_filter.launch" /> -->
 
