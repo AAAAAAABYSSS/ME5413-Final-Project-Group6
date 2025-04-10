@@ -14,14 +14,15 @@ class BridgeCrossingManager:
         self.navigator = navigator
         self.crossed = False
 
-    def execute_crossing(self):
+    def execute_crossing(self, post_bridge_position):
+        self.navigator.post_bridge_position1 = post_bridge_position
         rospy.loginfo("[BridgeCrossing] Preparing to cross bridge...")
         rospy.sleep(0.5)
         self.navigator.open_bridge_pub.publish(Bool(data=True))
         rospy.loginfo("[BridgeCrossing] Bridge opening command sent.")
-        rospy.sleep(0.5)
-        self.navigator.publish_goal(self.navigator.post_bridge_position, yaw_deg=180.0)
-        self.navigator.publish_arrow_marker(self.navigator.post_bridge_position)
+        rospy.sleep(3.0)
+        self.navigator.publish_goal(self.navigator.post_bridge_position1, yaw_deg= 180.0)
+        self.navigator.publish_arrow_marker(self.navigator.post_bridge_position1)
         self.crossed = True
 
     def after_crossing_logic(self):
@@ -87,12 +88,14 @@ class FurthestBoxNavigator:
 
         self.in_fallback_mode = False
         self.reach_goal = True
-        self.crossing_manager = BridgeCrossingManager(self)
+        
         self.has_crossed_bridge = False
         self.label_set = set()
 
         self.bridge_ready = True
-        self.bridge_position = [9, -11.0, 0.0]
+        self.bridge_position = [10, -11.0, 0.0]
+
+        self.crossing_manager = BridgeCrossingManager(self)
 
         # ROS Comm
         rospy.Subscriber("/move_status", Bool, self.status_callback)
@@ -199,7 +202,7 @@ class FurthestBoxNavigator:
         
         # if self.try_publish_bridge_goal():
         #     return
-        if self.publish_next_goal and self.begin_nav and self.bridge_ready:
+        if self.publish_next_goal and self.begin_nav and self.bridge_ready and not self.has_crossed_bridge:
             rospy.loginfo("[Navigator-status] Target reached, but bridge is ready. Publishing bridge goal.")
             self.last_goal_position = self.bridge_position
             self.publish_goal(self.bridge_position, yaw_deg=180.0)
@@ -219,7 +222,8 @@ class FurthestBoxNavigator:
                     rospy.loginfo(f"[Navigator-status] No target found, using fallback goal.{self.begin_nav}")
                     self.publish_goal(fallback_goal)
                     self.publish_arrow_marker(fallback_goal)
-        elif self.publish_next_goal and self.begin_nav and self.bridge_ready:
+
+        elif self.publish_next_goal and self.begin_nav and self.bridge_ready and not self.has_crossed_bridge:
             rospy.loginfo("[Navigator-status] Target reached, but bridge is ready. Publishing bridge goal.")
             self.last_goal_position = self.bridge_position
             self.publish_goal(self.bridge_position, yaw_deg=180.0)
@@ -233,11 +237,11 @@ class FurthestBoxNavigator:
 
         if self.reach_goal and self.bridge_goal_sent and not self.has_crossed_bridge:
             rospy.loginfo("[Navigator] Reached bridge goal. Starting crossing...")
-            self.crossing_manager.execute_crossing()
+            self.crossing_manager.execute_crossing(self.post_bridge_position)
             self.has_crossed_bridge = True
             self.crossing_manager.after_crossing_logic()
 
-    def begin_nav_publish_goal(self, event):
+    def begin_nav_publish_goal(self, event=None):
         if self.begin_nav:
             rospy.loginfo("[Navigator] Navigation already started.")
             return 
@@ -307,14 +311,14 @@ class FurthestBoxNavigator:
             self.publish_arrow_marker(self.bridge_position)
             return
 
-    def try_bridge_ready(self, event):
+    def try_bridge_ready(self, event=None):
         box_count = sum(1 for m in self.current_box.markers if m.ns == "box" and m.pose.position.x > self.bridge_pos)
         bridge_marker = next((m for m in self.current_box.markers if m.ns == "bridge"), None)
         any_unmatched = any(not self.fusion_info.get(str(m.id), {}).get("matched", True)
                             for m in self.current_box.markers if m.ns == "box")
 
         # if not any_unmatched and box_count >= 10 and len(self.label_set) >= 4 and bridge_marker:
-        rospy.loginfo("[BridgeCheck] Bridge ready conditions met.")
+        rospy.loginfo("[BridgeCheck0] Bridge ready conditions met.")
         self.bridge_ready = True
         self.bridge_position = [bridge_marker.pose.position.x + self.bridge_length / 2 - 0.5,
                                 bridge_marker.pose.position.y, 0.0]
@@ -410,7 +414,7 @@ class FurthestBoxNavigator:
         except Exception as e:
             rospy.logwarn(f"[FusionInfo] Failed to parse: {e}")
 
-    def update_pose_from_tf(self, event):
+    def update_pose_from_tf(self, event=None):
         try:
             trans, rot = self.tf_listener.lookupTransform("map", "base_link", rospy.Time(0))
             T = np.eye(4)

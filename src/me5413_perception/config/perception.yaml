@@ -7,7 +7,7 @@ fusion_node:
 
 furthest_box_navigator:
   overlap_threshold: 0.6
-  bridge_length: 4.0
+  bridge_length: 5.0
   yaw_bin_size: 20
   box_big_size: 1.2
   bridge_pos: 9.0
