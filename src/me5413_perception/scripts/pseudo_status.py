@@ -28,6 +28,7 @@ class PseudoStatus:
 
 
         rospy.loginfo("PseudoStatus started.")
+        rospy.Timer(rospy.Duration(1.0), self.update_pose_from_tf)
 
         self.rate = rospy.Rate(10)  # 10Hz
         # self.update_pose_from_tf()
@@ -42,7 +43,7 @@ class PseudoStatus:
     #     pos = msg.pose.pose.position
     #     self.current_pose = np.array([pos.x, pos.y, pos.z])
 
-    def update_pose_from_tf(self):
+    def update_pose_from_tf(self, event=None):
         """Get transform from base_link to map and update current_pose"""
         try:
             # Baselink to map transform

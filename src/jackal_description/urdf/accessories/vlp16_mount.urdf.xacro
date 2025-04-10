@@ -90,10 +90,14 @@
         <child link="${prefix}_vlp16_plate" />
         <origin xyz="0 0 ${height}" rpy="0 0 0" />
       </joint>
-
-      <xacro:VLP-16 parent="${prefix}_vlp16_plate" topic="${topic}">
+<!-- 
+      <xacro:VLP-16 parent="${prefix}_vlp16_plate" topic="${topic} ">
+        <origin xyz="0 0 0" rpy="0 0 0" />
+      </xacro:VLP-16> -->
+      <xacro:VLP-16 parent="${prefix}_vlp16_plate" topic="${topic}" hz="50.0">
         <origin xyz="0 0 0" rpy="0 0 0" />
       </xacro:VLP-16>
+
     </xacro:if>
     <xacro:unless value="${tower}">
       <xacro:VLP-16 parent="${parent_link}" topic="${topic}">

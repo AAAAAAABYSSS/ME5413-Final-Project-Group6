@@ -5,6 +5,7 @@ import numpy as np
 import open3d as o3d
 import os
 
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
 yaml_path = os.path.join(script_dir, "../maps/nav_carto_3d_cleaned.yaml")
 
@@ -26,6 +27,9 @@ if image is None:
 height, width = image.shape
 print(f"Map size: {width} x {height}")
 
+remove_x_min, remove_x_max = 5.0, 6.0
+remove_y_min, remove_y_max = -19.0, -8.0
+
 points = []
 
 for y in range(height):
@@ -34,12 +38,17 @@ for y in range(height):
         wx = origin[0] + x * resolution
         wy = origin[1] + (height - y - 1) * resolution
 
+        if remove_x_min <= wx <= remove_x_max and remove_y_min <= wy <= remove_y_max:
+            wz = 0.00
+            points.append([wx, wy, wz])
+            continue
+
         if pixel < occ_thresh * 255:
             for z in np.arange(0, 1.0, 0.1):  
                 points.append([wx, wy, z])
 
         elif pixel > free_thresh * 255:
-            wz = 0.0
+            wz = 0.00
             points.append([wx, wy, wz])
 
         # if pixel == 0:

@@ -1,7 +1,15 @@
 #!/usr/bin/env python
 import rospy
+import sensor_msgs.point_cloud2 as pc2
 import numpy as np
+import open3d as o3d
+import std_msgs.msg
+import os
+import json
+import tf
 
+from sklearn.linear_model import RANSACRegressor
+from scipy.spatial.transform import Rotation as R
 from visualization_msgs.msg import Marker, MarkerArray
 
 
@@ -189,26 +197,22 @@ class ClusterProcessor:
 
         min_bound = np.minimum(box1["min_bound"], box2["min_bound"]).tolist()
         max_bound = np.maximum(box1["max_bound"], box2["max_bound"]).tolist()
-        new_id = min(box1["id"], box2["id"])  # Keep the smallest ID
         center = ((np.array(min_bound) + np.array(max_bound)) / 2).tolist()
         extent = (np.array(max_bound) - np.array(min_bound)).tolist()
 
         # Avoid merging error caused by distortion
         if any(extent) > self.max_extent and box1["type"] == "box":
-            vol1 = np.prod(np.array(box1["extent"]))
-            vol2 = np.prod(np.array(box2["extent"]))
-            keep_box = box1 if vol1 >= vol2 else box2
             return {
-                "id": new_id,
-                "type": keep_box["type"],
-                "center": keep_box["center"],
-                "min_bound": keep_box["min_bound"],
-                "max_bound": keep_box["max_bound"],
-                "extent": keep_box["extent"],
+                "id": box1["id"],
+                "type": box1["type"],
+                "center": box1["center"],
+                "min_bound": box1["min_bound"],
+                "max_bound": box1["max_bound"],
+                "extent": box1["extent"],
             }
 
         return {
-            "id": new_id,
+            "id": box1["id"],
             "type": box1["type"],
             "center": center,
             "min_bound": min_bound,
@@ -251,9 +255,7 @@ class ClusterProcessor:
                 )
                 # If there is a qualified box very close, ignore this small bbox
                 if center_dist <= self.delete_radius:
-                    base_bbox["id"] = (
-                        base_bbox["id"] if base_bbox["id"] < bbox["id"] else bbox["id"]
-                    )
+                    base_bbox["id"] = base_bbox["id"] if base_bbox["id"] < bbox["id"] else bbox["id"]
                     break
             else:
                 # No qualified box is close enough → keep this bbox (regarded as the new target)
@@ -263,7 +265,7 @@ class ClusterProcessor:
         return bridge_bboxes + qualified_bboxes
 
     # Filter out the colliding bboxes.
-    # Keep the content of the bbox with the larger id, but replace its id with
+    # Keep the content of the bbox with the larger id, but replace its id with 
     # the deleted smaller id. Finally, only keep the updated bbox (new content, old id).
     def filter_colliding_bboxes(self, bboxes):
         filtered = bboxes.copy()
@@ -287,10 +289,7 @@ class ClusterProcessor:
                 iou = self.calculate_iou(box1, box2)
                 if iou > 0:
                     # Keep the content of the box with a larger id and replace it with a box with a smaller id
-                    vol1 = np.prod(np.array(box1["extent"]))
-                    vol2 = np.prod(np.array(box2["extent"]))
-                    keep_box = box1 if vol1 >= vol2 else box2
-                    # keep_box = box1 if id1 > id2 else box2
+                    keep_box = box1 if id1 > id2 else box2
                     keep_id = min(id1, id2)
 
                     new_box = keep_box.copy()
@@ -365,9 +364,7 @@ class ClusterProcessor:
             # Place it slightly above the cube
             text_marker.pose.position.x = detection["center"][0]
             text_marker.pose.position.y = detection["center"][1]
-            text_marker.pose.position.z = (
-                detection["center"][2] + detection["extent"][2] / 2.0 + 0.1
-            )
+            text_marker.pose.position.z = detection["center"][2] + detection["extent"][2] / 2.0 + 0.1
             text_marker.pose.orientation.w = 1.0
 
             text_marker.scale.z = 0.2  # Text size

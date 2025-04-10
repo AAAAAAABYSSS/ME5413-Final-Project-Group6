@@ -24,3 +24,35 @@ world_frame: odom
 
 predict_to_current_time: true
 publish_tf: true
+
+# use_control: false
+
+# --- Pose source from NDT ---
+# pose0: /ndt/pose
+# pose0_config: [true, true, false,
+#                false, false, true,
+#                false, false, false,
+#                false, false, true]
+# pose0_differential: false
+# pose0_relative: false
+
+# pose0: /ndt/pose_converted
+# pose0_config: [true, true, false,
+#                false, false, false,
+#                false, false, false,
+#                true, true, true,
+#                false, false, false]
+# pose0_differential: false
+
+# ekf_localization_node:
+#   odom0: /ndt/pose_converted
+#   odom0_config: [true, true, true, false, false, false, false, false, false, false, false, false, false, false, false]
+#   pose0_differential: false
+
+
+# odometry0: /ndt/pose
+# odometry0_config: [true, true, true, true, true, true,
+#                    false, false, false, false, false, false,
+#                    false, false, false, false, false, false]
+# odometry0_differential: false
+# odometry0_relative: false

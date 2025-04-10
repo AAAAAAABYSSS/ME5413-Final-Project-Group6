@@ -8,7 +8,7 @@
   <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" /> -->
   
   <!-- Launch the Localizer -->
-  <arg name="localization_method" default="amcl" />  <!-- amcl / ndt -->
+  <arg name="localization_method" default="ndt" />  <!-- amcl / ndt -->
   <arg name="map_yaml" default="$(find me5413_world)/maps/nav_carto_3d_cleaned.yaml" />
   <arg name="map_pcd"  default="$(find me5413_world)/maps/nav_carto_3d_cleaned.pcd" />
 
@@ -20,6 +20,7 @@
 
     <!-- ========== NDT Path ========== -->
     <group if="$(eval localization_method == 'ndt')">
+    <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_yaml)" />
       <include file="$(find me5413_navigation)/launch/include/ndt.launch">
       </include>
     </group>
@@ -35,7 +36,7 @@
   <!-- local planner name -->
   <arg name="local_planner" default="teb" />
   </include>
-  <node pkg="me5413_navigation" type="jackal_auto_nav.py" name="jackal_auto_rot_nav" output="screen" respawn="true" />
+  <!-- <node pkg="me5413_navigation" type="jackal_auto_nav.py" name="jackal_auto_rot_nav" output="screen" respawn="true" /> -->
 
   <!-- <rosparam file="$(find me5413_navigation)/config/base_local_planner_params.yaml" command="load" />
   <rosparam file="$(find me5413_navigation)/config/costmap_common_params.yaml" command="load" /> -->
@@ -43,7 +44,6 @@
 
   <!-- Launch IMU filter -->
   <!-- <include file="$(find me5413_navigation)/launch/imu_filter.launch" /> -->
-
   <!-- ekf localization -->
     <!-- <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization" output="screen">
         <param name="imu0" value="/imu/data/bias_filtered"/>
@@ -53,6 +53,7 @@
   <node type="rviz" name="rviz" pkg="rviz" args="-d $(find me5413_world)/rviz/navigation.rviz" output="log" respawn="true"/>
   <!-- <node ns="me5413_world" pkg="me5413_world" type="goal_publisher_node" name="goal_publisher_node" output="screen" /> -->
 
+  <!-- <node pkg="tf" type="static_transform_publisher" name="laser_to_base_link" args=" 0 0 0.322 0 0 0 base_link velodyne 100" /> -->
 
   <!-- <node pkg="me5413_world" type="jackal_auto_nav.py" name="jackal_auto_rot_nav" output="screen">
     <param name="pause_duration" value="1.0" />

@@ -7,7 +7,8 @@
       <arg name="local_planner" default="dwa" />
 
       <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen" >
-        <param name="base_global_planner" value="path_planner/PathPlanner" />
+        <!-- <param name="base_global_planner" value="path_planner/PathPlanner" /> -->
+        <param name="base_global_planner" value="navfn/NavfnROS" />
         <param name="PathPlanner/planner_name" value="$(arg global_planner)" />
 
                 <!-- graph search -->
@@ -92,5 +93,9 @@
       <!-- <param name="base_local_planner" value="base_local_planner/TrajectoryPlannerROS"/> -->
       
       <remap from="odom" to="odometry/filtered" />
+
     </node>
+
+        <!-- <node pkg="topic_tools" type="relay" name="relay_ndt_to_amcl" args="/ndt/pose /amcl_pose" /> -->
+
   </launch>

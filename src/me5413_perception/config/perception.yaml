@@ -54,7 +54,7 @@ target_detector:
   overall_range: [-5, -25]
   eligible_x_range: [-1.5, 23.5]
   eligible_y_range: [-23.5, -1.5]
-  eligible_offset: 0.4
+  eligible_offset: 0.1 #0.4
   roi_x: [-0.5, 19.5]
   roi_y: [-22.5, -1.7]
   roi_z: [0.05, 99] # [-0.3, 99]

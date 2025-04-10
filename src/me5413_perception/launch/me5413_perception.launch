@@ -13,7 +13,7 @@
   
   <!-- <node pkg="me5413_perception" type="clu_pcd_v0.5.py" name="box_detector" output="screen" required="true" /> -->
 
-  <!-- <node pkg="me5413_perception" type="pseudo_status.py" name="pseudo_status" output="screen" required="true" /> -->
+  <node pkg="me5413_perception" type="pseudo_status.py" name="pseudo_status" output="screen" required="true" />
 
   <node pkg="me5413_perception" type="pub_3d_bbox.py" name="bbox_transform" output="screen" required="true" />
 
