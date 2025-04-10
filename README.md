@@ -16,15 +16,6 @@ In this project, users can launch the simulated Jackal robot to autonomously exp
    - C++11 and above
    - CMake: 3.0.2 and above
 
- - In addition to the standard ROS packages, this repo also depends on:
-   - Cartographer
-   - TEB
-   - explore_lite
-   - ira_laser_tools
-   - Fast-Livo2
-   - ros_motion_planning
-   - Autonomous Robot Navigation
-
 ### How to use
 
 1. Clone this repository by ssh
@@ -54,6 +45,7 @@ In this project, users can launch the simulated Jackal robot to autonomously exp
 - Mapping 
     - [x] Cartographer
     - [x] Fast-Livo2
+    - [x] Explore_lite
 - Localisation
     - [x] AMCL
     - [x] NDT
@@ -98,7 +90,12 @@ Note: easily change arg `local_planner` in `src/me5413_navigation/launch/navigat
     roslaunch me5413_world world.launch
     roslaunch me5413_world manual.launch
     ```
-    Then use Cartographer to build the map manually.
+    Then use Cartographer to build the map manually. 
+
+    An example of mapping by 3D Cartographer is shown as follows:
+    <p align="center">
+      <img src="./src/me5413_world/maps/nav.png" alt="carto_map">
+    </p>
 
 2. 2D Cartographer + Explore Lite
 
@@ -113,9 +110,25 @@ Note: easily change arg `local_planner` in `src/me5413_navigation/launch/navigat
 
     Then in the original terminal, choose __`0`__ for mapping mode, then thoose __`1`__ for Explore Lite Control. Subsequently, the Jackal will autonomously explore the whole environment during 250 seconds, and then save the map under `src/me5413_world/maps/`.
 
+    An example of mapping by 2D Cartographer with Explore Lite is shown as follows:
+    <p align="center">
+      <img src="./src/me5413_world/maps/carto_w_el_map.png" alt="carto_map">
+    </p>
 
-3. Fast-Livo2
+3. Fast-Livo2 **************************
+    
+    Start the mapping mode by bash:
+    ```shell
+    bash scripts/mapping.bash
+    ```
 
+    An example of mapping by Fast-Livo2 is shown as follows:
+    <p align="center">
+      <img src="./docs/fast_livo2_pv.png" alt="carto_map">
+      <img src="./docs/fast_livo2_topv.png" alt="carto_map">
+      <img src="./docs/fast_livo2_pv1.png" alt="carto_map">
+      <img src="./docs/fast_livo2_topv1.png" alt="carto_map">
+    </p>
 
 
 ### 5.2 Planning and Control
@@ -140,6 +153,10 @@ We would like to thank the following open-source projects:
 - [Fast-Livo2](https://github.com/hku-mars/FAST-LIVO2)
 - [ros_motion_planning](https://github.com/ai-winter/ros_motion_planning)
 - [Autonomous Robot Navigation](https://github.com/brian00715/Autonomous-Robot-Navigation)
+- [explore_lite](https://github.com/hrnr/m-explore.git)
+- [ira_laser_tools](https://github.com/iralabdisco/ira_laser_tools.git)
+- [cartographer](https://github.com/cartographer-project/cartographer.git)
+- [cartographer_ros](https://github.com/cartographer-project/cartographer_ros.git)
 
 ## 7 Compiler Errors
 
