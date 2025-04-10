@@ -9,7 +9,8 @@ global_costmap:
    origin_x: -20.0
    origin_y: -20.0
    static_map: true
-   rolling_window: false
+   rolling_window: false #false
+   allow_unkown: true
 
    plugins:
    - {name: static_layer, type: "costmap_2d::StaticLayer"}
@@ -22,4 +23,4 @@ inflater_layer:
    # inflation_radius: 3
    inflation_radius: 0.34
 obstacles_layer:
-   track_unknown_space: true
+   track_unknown_space: true #true

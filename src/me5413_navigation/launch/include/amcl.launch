@@ -1,6 +1,6 @@
 <launch>
 
-  <arg name="use_map_topic" default="false"/>
+  <arg name="use_map_topic" default="true"/>
   <!-- <arg name="use_map_topic" default="true"/> -->
   <remap from="scan" to="scan_multi"/>
 

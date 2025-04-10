@@ -9,11 +9,18 @@
     <rosparam file="$(find me5413_navigation)/config/map_nav_params/global_costmap_params.yaml" command="load" />
     
     <!-- <rosparam file="$(find me5413_navigation)/config/base_local_planner_params.yaml" command="load" /> -->
-    <rosparam file="$(find me5413_navigation)/config/base_local_planner_params.yaml" command="load" />
+    <!-- <rosparam file="$(find me5413_navigation)/config/base_local_planner_params.yaml" command="load" /> -->
     <rosparam file="$(find me5413_navigation)/config/move_base_params.yaml" command="load" />
+
+    <rosparam file="$(find me5413_navigation)/config/controller/teb_local_planner_params.yaml" command="load" />
+    <rosparam file="$(find me5413_navigation)/config/controller/teb_costmap_converter.yaml" command="load" />
     
     <param name="base_global_planner" type="string" value="navfn/NavfnROS" />
-    <param name="base_local_planner" value="base_local_planner/TrajectoryPlannerROS"/>
+    <!-- <param name="base_local_planner" value="base_local_planner/TrajectoryPlannerROS"/> -->
+    <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS"/>
+
+    <param name="controller_frequency" value="10.0" />
+    <param name="controller_patience" value="5.0" />
     
     <remap from="odom" to="odometry/filtered" />
   </node>
