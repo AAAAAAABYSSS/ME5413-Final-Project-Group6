@@ -1,5 +1,11 @@
-# ME5413_Final_Project
+# NUS ME5413 Autonomous Mobile Robotics Final Project-Group 6
+> Authors: [Ziyue](https://github.com/YukiKuma111) [Zewen](https://github.com/JackCooper666), [Jingyang](https://github.com/whitbrunn), [Zhongrui](https://github.com/Leesangsama), and [Jinxian](https://github.com/Z-Jinxian)
+> Many thanks to the course TAs — [Christina](https://github.com/ldaowen), [Ziggy](https://github.com/ziggyhuang), [Dongen](https://github.com/nuslde), and [Shuo](https://github.com/SS47816)
 
+![Ubuntu 20.04](https://img.shields.io/badge/OS-Ubuntu_20.04-informational?style=flat&logo=ubuntu&logoColor=white&color=2bbc8a)
+![ROS Noetic](https://img.shields.io/badge/Tools-ROS_Noetic-informational?style=flat&logo=ROS&logoColor=white&color=2bbc8a)
+![C++](https://img.shields.io/badge/Code-C++-informational?style=flat&logo=c%2B%2B&logoColor=white&color=2bbc8a)
+![Python](https://img.shields.io/badge/Code-Python-informational?style=flat&logo=Python&logoColor=white&color=2bbc8a)
 ## 1 Project Overview
 
 This project is part of the ME5413 Autonomous Mobile Robotics course at NUS. It involves simulating a mobile robot in a Gazebo environment using ROS Noetic. The main tasks include mapping the environment using SLAM, navigating using a saved map, and interacting with randon generated elements like bridges and boxes with figures.
