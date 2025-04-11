@@ -115,11 +115,11 @@ Note: easily change arg `local_planner` in `src/me5413_navigation/launch/navigat
       <img src="./src/me5413_world/maps/carto_w_el_map.png" alt="carto_map">
     </p>
 
-3. Fast-Livo2 **************************
+3. Fast-Livo2 
     
     Start the mapping mode by bash:
     ```shell
-    bash scripts/mapping.bash
+    bash scripts/start.bash
     ```
 
     An example of mapping by Fast-Livo2 is shown as follows:
