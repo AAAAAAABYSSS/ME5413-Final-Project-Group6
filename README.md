@@ -1,5 +1,6 @@
 # NUS ME5413 Autonomous Mobile Robotics Final Project-Group 6
-> Authors: [Ziyue](https://github.com/YukiKuma111) [Zewen](https://github.com/JackCooper666), [Jingyang](https://github.com/whitbrunn), [Zhongrui](https://github.com/Leesangsama), and [Jinxian](https://github.com/Z-Jinxian)
+> Authors: [Ziyue](https://github.com/YukiKuma111) [Zewen](https://github.com/JackCooper666), [Jingyang](https://github.com/whitbrunn), [Zhongrui](https://github.com/Leesangsama), and [Jinxian](https://github.com/Z-Jinxian) and me
+
 > Many thanks to the course TAs — [Christina](https://github.com/ldaowen), [Ziggy](https://github.com/ziggyhuang), [Dongen](https://github.com/nuslde), and [Shuo](https://github.com/SS47816)
 
 ![Ubuntu 20.04](https://img.shields.io/badge/OS-Ubuntu_20.04-informational?style=flat&logo=ubuntu&logoColor=white&color=2bbc8a)
