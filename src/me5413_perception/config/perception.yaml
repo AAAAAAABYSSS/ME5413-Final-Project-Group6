@@ -11,6 +11,8 @@ furthest_box_navigator:
   yaw_bin_size: 20
   box_big_size: 1.2
   bridge_pos: 9.0
+  x_range: [11.0, 19.0]         
+  y_range: [-22.0, -2.0]  
 
 pseudo_status:
   min_dist: 2.5 #4.5

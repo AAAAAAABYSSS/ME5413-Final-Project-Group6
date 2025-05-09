@@ -36,7 +36,7 @@ class FusionNode:
         # rospy.Subscriber("/gazebo/ground_truth/state", Odometry, self.odom_callback)
 
         self.target_3d_pub = rospy.Publisher("/perception/yolo_targets_3d", String, queue_size=10)
-        rospy.loginfo(f"[FusionNode] Using {self.N} closest points based on ray direction")
+        # rospy.loginfo(f"[FusionNode] Using {self.N} closest points based on ray direction")
 
     def camera_info_callback(self, msg):
         self.camera_intrinsics = np.array(msg.K).reshape(3, 3)
@@ -142,7 +142,7 @@ class FusionNode:
         while not rospy.is_shutdown():
             if self.latest_pointcloud and self.camera_intrinsics is not None and self.yolo_targets:
                 try:
-                    rospy.loginfo("[FusionNode] Entered process_data loop.")
+                    # rospy.loginfo("[FusionNode] Entered process_data loop.")
 
                     self.tf_listener.waitForTransform("/front_camera_optical", "/velodyne", rospy.Time(0), rospy.Duration(1.0))
                     (trans, rot) = self.tf_listener.lookupTransform("/front_camera_optical", "/velodyne", rospy.Time(0))
@@ -203,7 +203,7 @@ class FusionNode:
                     # merged_output = self.merge_nearby_labels(output, self.merge_distance)
                     # print(merged_output)
                     self.target_3d_pub.publish(json.dumps(output))
-                    rospy.loginfo(f"[FusionNode] Published 3D targets: {output}")
+                    # rospy.loginfo(f"[FusionNode] Published 3D targets: {output}")
 
                 except Exception as e:
                     rospy.logwarn(f"[FusionNode] Failed to process: {e}")

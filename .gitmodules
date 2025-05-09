@@ -25,20 +25,38 @@
 	path = src/me5413_thirdparty/ros_motion_planning
 	url = git@github.com:AAAAAAABYSSS/ros_motion_planning.git
 
-# [Mapping]: Fast livo2
-# [submodule "src/me5413_thirdparty/fast_livo"]
-# 	path = src/me5413_thirdparty/fast_livo
-# 	url = git@github.com:AAAAAAABYSSS/FAST-LIVO2.git
+[submodule "src/me5413_thirdparty/teb_local_planner"]
+	path = src/me5413_thirdparty/teb_local_planner
+	url = git@github.com:AAAAAAABYSSS/teb_local_planner.git
 
-# [submodule "src/me5413_thirdparty/rpg_vikit"]
-# 	path = src/me5413_thirdparty/rpg_vikit
-# 	url = git@github.com:AAAAAAABYSSS/rpg_vikit.git
+[submodule "src/me5413_thirdparty/teb_local_planner_tutorials"]
+	path = src/me5413_thirdparty/teb_local_planner_tutorials
+	url = git@github.com:AAAAAAABYSSS/teb_local_planner_tutorials.git
 
-# [submodule "src/me5413_thirdparty/livox_ros_driver"]
-# 	path = src/me5413_thirdparty/livox_ros_driver
-# 	url = git@github.com:AAAAAAABYSSS/livox_ros_driver.git
 
-# [submodule "src/me5413_thirdparty/Sophus"]
-# 	path = src/me5413_thirdparty/Sophus
-# 	url = git@github.com:AAAAAAABYSSS/Sophus.git
+# [Mapping]: Mapping and SLAM
+[submodule "src/me5413_thirdparty/fast_livo"]
+	path = src/me5413_thirdparty/fast_livo
+	url = git@github.com:AAAAAAABYSSS/FAST-LIVO2.git
+
+[submodule "src/me5413_thirdparty/rpg_vikit"]
+	path = src/me5413_thirdparty/rpg_vikit
+	url = git@github.com:AAAAAAABYSSS/rpg_vikit.git
+
+[submodule "src/me5413_thirdparty/livox_ros_driver"]
+	path = src/me5413_thirdparty/livox_ros_driver
+	url = git@github.com:AAAAAAABYSSS/livox_ros_driver.git
+
+[submodule "src/me5413_thirdparty/Sophus"]
+	path = src/me5413_thirdparty/Sophus
+	url = git@github.com:AAAAAAABYSSS/Sophus.git
+
+[submodule "src/me5413_thirdparty/Livox-SDK"]
+	path = src/me5413_thirdparty/Livox-SDK
+	url = git@github.com:AAAAAAABYSSS/Livox-SDK.git
+
+# [Visualization]: Visualization tools
+[submodule "src/me5413_thirdparty/laserscan_to_pointcloud"]
+	path = src/me5413_thirdparty/laserscan_to_pointcloud
+	url = git@github.com:AAAAAAABYSSS/pointcloud_to_laserscan.git
 

@@ -17,9 +17,9 @@ global_costmap:
    - {name: inflater_layer, type: "costmap_2d::InflationLayer"}
    # - {name: voronoi_layer, type: "costmap_2d::VoronoiLayer"}
 
-inflater_layer:
-   cost_scaling_factor: 5
-   # inflation_radius: 3
-   inflation_radius: 0.34
-obstacles_layer:
-   track_unknown_space: true
+# inflater_layer:
+#    cost_scaling_factor: 2 #5
+#    # inflation_radius: 3
+#    inflation_radius: 0.3 #0.34
+# obstacles_layer:
+#    track_unknown_space: true

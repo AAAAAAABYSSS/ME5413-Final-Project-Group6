@@ -13,13 +13,15 @@
   
   <!-- <node pkg="me5413_perception" type="clu_pcd_v0.5.py" name="box_detector" output="screen" required="true" /> -->
 
-  <node pkg="me5413_perception" type="pseudo_status.py" name="pseudo_status" output="screen" required="true" />
+  <!-- <node pkg="me5413_perception" type="pseudo_status.py" name="pseudo_status" output="screen" required="true" /> -->
 
   <node pkg="me5413_perception" type="pub_3d_bbox.py" name="bbox_transform" output="screen" required="true" />
 
   <node pkg="me5413_perception" type="pub_nav_goal.py" name="furthest_box_navigator" output="screen" required="true" />
 
   <node pkg="me5413_perception" type="visualize_fusion.py" name="visualize_fusion" output="screen" respawn="true" />
+
+  <node pkg="me5413_navigation" type="jackal_auto_nav.py" name="jackal_auto_rot_nav" output="screen" respawn="true" />
 
   <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="world_broadcast" args="0 0 0 0 0 -0.7071 0.7071 map rotated_frame" /> -->
   

@@ -29,6 +29,8 @@ print(f"Map size: {width} x {height}")
 
 remove_x_min, remove_x_max = 5.0, 6.0
 remove_y_min, remove_y_max = -19.0, -8.0
+bridge_x_min, bridge_x_max = 5.5, 8.5
+bridge_y_min, bridge_y_max = -23.5, -1.8
 
 points = []
 
@@ -38,6 +40,9 @@ for y in range(height):
         wx = origin[0] + x * resolution
         wy = origin[1] + (height - y - 1) * resolution
 
+        if bridge_x_min < wx < bridge_x_max and bridge_y_min < wy < bridge_y_max:
+                    continue
+        
         if remove_x_min <= wx <= remove_x_max and remove_y_min <= wy <= remove_y_max:
             wz = 0.00
             points.append([wx, wy, wz])
@@ -51,15 +56,6 @@ for y in range(height):
             wz = 0.00
             points.append([wx, wy, wz])
 
-        # if pixel == 0:
-        #     wx = origin[0] + x * resolution
-        #     wy = origin[1] + (height - y - 1) * resolution
-        #     wz = 0.5
-        # if (negate == 0 and pixel > free_thresh * 255) or (negate == 1 and pixel < free_thresh * 255):
-        #     wx = origin[0] + x * resolution
-        #     wy = origin[1] + (height - y - 1) * resolution
-        #     wz = 0.0
-        #     points.append([wx, wy, wz])
 
 pcd = o3d.geometry.PointCloud()
 pcd.points = o3d.utility.Vector3dVector(np.array(points))

@@ -24,7 +24,9 @@ class NavigationSuccessChecker:
         self.goal = []
 
         # Set the thresholds
-        self.position_threshold = 0.08 #0.01  # position difference threshold in meters
+        self.position_threshold = (
+            0.08  # 0.01  # position difference threshold in meters
+        )
         self.orientation_threshold = 0.01  # orientation difference threshold in radians
         self.max_similarity_count = (
             30  # Number of similar frames required to trigger success
@@ -33,7 +35,7 @@ class NavigationSuccessChecker:
             100  # Number of unsimilar frames required to trigger unsuccess
         )
         self.min_ego_goal_dist = (
-            2.0  # Number of similar frames required to trigger success
+            1.8  # Number of similar frames required to trigger success
         )
 
         # Publisher for cmd_vel to control the robot's movement
@@ -94,16 +96,15 @@ class NavigationSuccessChecker:
                         orientation_diff = abs(
                             current_euler[2] - previous_euler[2]
                         )  # Only check the Z-axis orientation
-                        if dist_ego_goal < self.min_ego_goal_dist:
-                            self.cancel_navigation_goal()
-                            self.rotate_360()
-                            self.similarity_count = 0
-                            self.unsimilarity_count = 0
+                        # if dist_ego_goal < self.min_ego_goal_dist:
+                        #     self.cancel_navigation_goal()
+                        #     self.rotate_360()
+                        #     self.similarity_count = 0
+                        #     self.unsimilarity_count = 0
                         # Check if the position and orientation differences are below the thresholds
                         if (
                             position_diff < self.position_threshold
                             and orientation_diff < self.orientation_threshold
-                            
                         ):
                             self.similarity_count += 1
                             self.unsimilarity_count = 0
@@ -112,32 +113,48 @@ class NavigationSuccessChecker:
                             self.similarity_count = 0
                             self.unsimilarity_count += 1
                             # Target not reached, ensure flag is False
+                        
+                        if trans[0] < 8.5 and trans[0] > 5.5:
+                            self.rot_end_pub.publish(Bool(data=True))
+                            return
 
                         # If the required number of similar frames is met, declare navigation success
                         rospy.logdebug(f"Similarity count: {self.similarity_count}")
-                        if self.similarity_count >= self.max_similarity_count:
-                            rospy.loginfo("Navigation Success: Goal reached!")
-                            # self.reach_goal_pub.publish(Bool(data=True))
-                            self.cancel_navigation_goal()
-                            # Start rotating 360 degrees after goal is reached
-                            self.rotate_360()
-                            # Reset the counter after success
-                            self.similarity_count = 0
-                            self.unsimilarity_count = 0
-                        elif (
-                            (self.unsimilarity_count >= self.max_unsimilarity_count)
-                            and (dist_ego_goal <= self.min_ego_goal_dist)
-                        ) or (
-                            self.unsimilarity_count >= self.max_unsimilarity_count * 1.2
-                        ):
-                            # self.reach_goal_pub.publish(Bool(data=False))
-                            rospy.loginfo(
-                                "Navigation Unsuccess: Failed to reach the target point, abandoned the target!"
-                            )
-                            self.cancel_navigation_goal()
-                            self.rotate_360()
-                            self.similarity_count = 0
-                            self.unsimilarity_count = 0
+                        if self.goal[0] == 9.8 or self.goal[0] == 4.5:
+                            if dist_ego_goal <= self.min_ego_goal_dist:
+                                rospy.loginfo("Navigation Success: [Bridge] Goal reached by distance.")
+                                self.rot_end_pub.publish(Bool(data=True))
+                                self.similarity_count = 0
+                                self.unsimilarity_count = 0
+                                return
+                        else:
+                            if (
+                                self.similarity_count >= self.max_similarity_count
+                                # or dist_ego_goal <= self.min_ego_goal_dist
+                            ):
+                                rospy.loginfo("Navigation Success: [Box] Goal reached!")
+                                # self.reach_goal_pub.publish(Bool(data=True))
+                                # Start rotating 360 degrees after goal is reached
+                                self.cancel_navigation_goal()
+                                self.rotate_360()
+                                # Reset the counter after success
+                                self.similarity_count = 0
+                                self.unsimilarity_count = 0
+                            elif (
+                                (self.unsimilarity_count >= self.max_unsimilarity_count)
+                                and (dist_ego_goal <= self.min_ego_goal_dist)
+                            ) or (
+                                self.unsimilarity_count
+                                >= self.max_unsimilarity_count * 1.2
+                            ):
+                                # self.reach_goal_pub.publish(Bool(data=False))
+                                rospy.loginfo(
+                                    "Navigation Unsuccess: Failed to reach the target point, abandoned the target!"
+                                )
+                                self.cancel_navigation_goal()
+                                self.rotate_360()
+                                self.similarity_count = 0
+                                self.unsimilarity_count = 0
 
             # Update the previous position and orientation
             self.previous_position = trans

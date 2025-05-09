@@ -16,7 +16,7 @@ class BBoxTransformer:
         self.arrow_pub = rospy.Publisher("/perception/marker/arrow_marker_baselink", Marker, queue_size=1)
         self.tf_listener = tf.TransformListener()
         self.current_pose = np.eye(4)
-        rospy.loginfo("BBoxTransformer started.")
+        # rospy.loginfo("BBoxTransformer started.")
 
 
     def update_pose_from_tf(self):
